@@ -100,9 +100,11 @@ class Textui::Event
   end
 
   def self.each(input, intr: true, tick:, &)
+    print "\e[?2004h" # enable bracketed paste
     event = new(input, intr: intr, tick: tick)
     event.run(&)
   ensure
+    print "\e[?2004l" # disable bracketed paste
     event.cleanup
   end
 

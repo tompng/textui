@@ -22,7 +22,6 @@ class RootComponent
     @key = key
   end
 
-
   def tick
     @cnt += 1
   end
