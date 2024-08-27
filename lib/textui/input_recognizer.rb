@@ -1,4 +1,4 @@
-class InputRecognizer
+class Textui::InputRecognizer
   def initialize
     @buf = ''.b
     @bracketed_paste = nil
@@ -26,8 +26,8 @@ class InputRecognizer
   KEYS["\x00"] = :ctrl_at
   KEYS["\e\x00"] = :meta_ctrl_at
   ('a'..'z').each do |c|
-    KEYS[(c.ord % 64).chr] = :"ctrl_#{c}"
-    KEYS["\e#{(c.ord % 64).chr}"] = :"ctrl_#{c}"
+    KEYS[(c.ord % 32).chr] = :"ctrl_#{c}"
+    KEYS["\e#{(c.ord % 32).chr}"] = :"ctrl_#{c}"
     KEYS["\e#{c}"] = :"meta_#{c}"
     KEYS["\e#{c.upcase}"] = :"meta_#{c.upcase}"
   end
@@ -59,6 +59,23 @@ class InputRecognizer
 
     raw.force_encoding(@encoding)
     Key.new(type: raw.size == 1 ? :key : :unknown, raw:) if raw.valid_encoding?
+  end
+
+  def each_key(input, intr: true)
+    input.raw(intr:) do
+      loop do
+        key = consume(input.getbyte)
+        if key == :wait
+          if input.wait_readable(0.1)
+            redo
+          else
+            consume(nil)
+          end
+        else
+          yield key
+        end
+      end
+    end
   end
 
   def test(byte)

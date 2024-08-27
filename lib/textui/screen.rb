@@ -3,17 +3,17 @@
 require 'io/console'
 
 module Textui
-  class Renderer
-    attr_accessor :root
+  class Screen
     FULLSCREEN_START = "\e[?1049h"
     FULLSCREEN_END = "\e[?1049l"
+    HIDE_CURSOR = "\e[?25l"
+    SHOW_CURSOR = "\e[?25h"
     RESET_CSI = "\e[0m"
 
     def initialize(fullscreen: false)
       @fullscreen = fullscreen
       print FULLSCREEN_START if @fullscreen
       Unicode.measure_widths
-      @root = nil
       @text_widths = {}
       @rendered_lines = []
       update_winsize
@@ -30,7 +30,6 @@ module Textui
       print "\e[H\e[2J"
       @cursor_y = @cursor_x = 0
       @rendered_lines = []
-      @root&.resize(@width, @height)
       render
     end
 
@@ -47,8 +46,8 @@ module Textui
       [xs, ts]
     end
 
-    def render
-      render_differential(@root ? @root.render : [], @root&.cursor_pos)
+    def render(component)
+      render_differential(component ? component.render : [], component&.cursor_pos)
     end
 
     def render_differential(line_segments, new_cursor_pos)
@@ -62,11 +61,16 @@ module Textui
       lines_height = [@rendered_lines.size, new_lines.size].max
       cursor_y = @cursor_y
       new_rendered_lines = []
+      cursor_hidden = false
       lines_height.times do |y|
         old_line, old_xs, old_ts = @rendered_lines[y]
         new_line = new_lines[y]
         next if old_line == new_line
 
+        unless cursor_hidden
+          print HIDE_CURSOR
+          cursor_hidden = true
+        end
         move_cursor_row_rel(y - cursor_y)
         move_cursor_col(0)
         cursor_y = y
@@ -89,7 +93,7 @@ module Textui
           elsif key != :skip
             x, text = key
             text_width = text_widths[text]
-            text = Unicode.substr(text, x - base_x, width) if x != base_x && text_width != width
+            text = Unicode.substr(text, base_x - x, width) if x != base_x || text_width != width
             move_cursor_col(base_x)
             print "#{RESET_CSI}#{text}#{RESET_CSI}"
           end
@@ -106,6 +110,11 @@ module Textui
       new_y = [new_y, @height - 1].min
       move_cursor_row_rel(new_y - cursor_y)
       move_cursor_col(new_x)
+      if new_cursor_pos
+        print SHOW_CURSOR
+      else
+        print HIDE_CURSOR unless cursor_hidden
+      end
       @cursor_x = new_x
       @cursor_y = new_y
       @renderable_base_y = [@renderable_base_y, @height - lines_height, @height - @cursor_y - 1].min
@@ -136,7 +145,7 @@ module Textui
       end
     end
 
-    def terminate(clear: false)
+    def cleanup(clear: false)
       if @fullscreen
         print FULLSCREEN_END
       elsif clear
@@ -144,6 +153,7 @@ module Textui
       else
         print "\r\n" * (@rendered_lines.size - @cursor_y)
       end
+      print SHOW_CURSOR
     end
   end
 end
