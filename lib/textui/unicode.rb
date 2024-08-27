@@ -175,7 +175,7 @@ module Textui::Unicode
 
   def self.measure_char_width(char, range)
     $stdin.raw do
-      print "\r#{char}\e[6n"
+      print "\r#{char}\e[6n\r\e[K"
       if $stdin.wait_readable(0.1) && /\e\[\d+;(?<col>\d+)R/ =~ $stdin.readpartial(1024)
         w = col.to_i - 1
         w if range.cover?(w)
@@ -183,6 +183,7 @@ module Textui::Unicode
     end
   end
 
+  # TODO: multibyte
   def self.substr(text, col, width)
     total_width = 0
     output = +''
