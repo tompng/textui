@@ -43,7 +43,7 @@ class Textui::InputRecognizer
         @bracketed_paste = nil
         return Key.new(type: :bracketed_paste, raw:)
       end
-      return :wait
+      return
     end
 
     raw = test(byte)
@@ -52,30 +52,13 @@ class Textui::InputRecognizer
     key = KEYS[raw]
     if key == :bracketed_paste
       @bracketed_paste = ''.b
-      return :wait
+      return
     end
 
     return Key.new(type: key, raw:) if key
 
     raw.force_encoding(@encoding)
     Key.new(type: raw.size == 1 ? :key : :unknown, raw:) if raw.valid_encoding?
-  end
-
-  def each_key(input, intr: true)
-    input.raw(intr:) do
-      loop do
-        key = consume(input.getbyte)
-        if key == :wait
-          if input.wait_readable(0.1)
-            redo
-          else
-            consume(nil)
-          end
-        else
-          yield key
-        end
-      end
-    end
   end
 
   def test(byte)
@@ -98,5 +81,70 @@ class Textui::InputRecognizer
         s
       end
     end
+  end
+end
+
+class Textui::Event
+  def initialize(input, intr: true, tick:)
+    @resized = @resumed = false
+    @intr = intr
+    @tick = tick
+    @input = input
+    @winch_trap = Signal.trap(:WINCH) do
+      @resized = true
+    end
+    @winch_trap = Signal.trap(:CONT) do
+      @resumed = true
+    end
+    @input_recognizer = Textui::InputRecognizer.new
+  end
+
+  def self.each(input, intr: true, tick:, &)
+    event = new(input, intr: intr, tick: tick)
+    event.run(&)
+  ensure
+    event.cleanup
+  end
+
+  KEY_TIMEOUT = 0.1
+
+  def run
+    @input.raw(intr: @intr) do
+      next_tick = Time.now + @tick if @tick
+      input_recognizer = Textui::InputRecognizer.new
+      input_timeout = nil
+      loop do
+        next_event, mode = (
+          if input_timeout && input_timeout < next_tick
+            [input_timeout, :timeout]
+          else
+            [next_tick, :tick]
+          end
+        )
+        readable = @input.wait_readable([next_event - Time.now, 0].max)
+        yield :resize if @resized
+        yield :resume if @resumed
+        @resized = @resumed = false
+        if readable
+          res = input_recognizer.consume @input.getbyte
+          if res == :wait
+            input_timeout = Time.now + KEY_TIMEOUT
+          else
+            input_timeout = nil
+            yield :key, res if res
+          end
+        elsif mode == :tick
+          next_tick = Time.now + @tick
+          yield :tick
+        else
+          res = input_recognizer.consume(nil)
+          yield :key, res if res
+        end
+      end
+    end
+  end
+
+  def cleanup
+    Signal.trap(:WINCH, @winch_trap) if @winch_trap
   end
 end

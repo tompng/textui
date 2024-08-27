@@ -19,24 +19,38 @@ class RootComponent
   end
 
   def key_press(key)
+    @key = key
+  end
+
+
+  def tick
     @cnt += 1
   end
 
   def render
     (0..20).map do |y|
-      [(@cnt+y)%7, y % 10, "\e[#{y<10 ? 41 : 42}mhelloworld y:#{y} #{@cnt}", y]
-    end
+      [(@cnt+y)%7, y % 10, "\e[#{y<10 ? 41 : 42}m#{@cnt}helloworld y:#{y} #{@cnt}", y]
+    end + [[4, 4, [@key].inspect.inspect, 99]]
   end
 end
 
 def example
   screen = Textui::Screen.new
-  recognizer = Textui::InputRecognizer.new
   component = RootComponent.new
   screen.render(component)
-  recognizer.each_key $stdin do |key|
-    component.key_press(key)
+
+  Textui::Event.each($stdin, tick: 0.1) do |type, data|
+    case type
+    when :key
+      component.key_press(data)
+    when :tick
+      component.tick
+    when :resize, :resume
+      screen.resize
+    end
     screen.render(component)
   end
+rescue Interrupt
+ensure
   screen.cleanup
 end

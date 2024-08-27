@@ -30,7 +30,6 @@ module Textui
       print "\e[H\e[2J"
       @cursor_y = @cursor_x = 0
       @rendered_lines = []
-      render
     end
 
     def fill_line_segments(line_segments, width_hash)
@@ -65,7 +64,10 @@ module Textui
       lines_height.times do |y|
         old_line, old_xs, old_ts = @rendered_lines[y]
         new_line = new_lines[y]
-        next if old_line == new_line
+        if old_line == new_line
+          new_rendered_lines[y] = [old_line, old_xs, old_ts]
+          next
+        end
 
         unless cursor_hidden
           print HIDE_CURSOR
@@ -74,10 +76,8 @@ module Textui
         move_cursor_row_rel(y - cursor_y)
         move_cursor_col(0)
         cursor_y = y
-        unless new_line
-          print "\e[K"
-          next
-        end
+        print "\e[K" unless new_line && old_line
+        next unless new_line
 
         new_xs, new_ts = fill_line_segments(new_line, text_widths)
         new_rendered_lines[y] = [new_line, new_xs, new_ts]
@@ -99,6 +99,7 @@ module Textui
           end
           base_x += width
         end
+        move_cursor_col(base_x)
         print "\e[K"
       end
 
