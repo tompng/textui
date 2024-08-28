@@ -59,6 +59,7 @@ module Textui
     end
 
     def render_differential(line_segments, new_cursor_pos)
+      cursor_hidden = true
       new_lines = []
       text_widths = {}
       line_segments.each do |x, y, text, z|
@@ -71,7 +72,7 @@ module Textui
       lines_height = [@rendered_lines.size, new_lines.size].max
       cursor_y = @cursor_y
       new_rendered_lines = []
-      cursor_hidden = false
+      output = +''
       lines_height.times do |y|
         old_line, old_xs, old_ts = @rendered_lines[y]
         new_line = new_lines[y]
@@ -79,15 +80,10 @@ module Textui
           new_rendered_lines[y] = [old_line, old_xs, old_ts]
           next
         end
-
-        unless cursor_hidden
-          print HIDE_CURSOR
-          cursor_hidden = true
-        end
-        move_cursor_row_rel(y - cursor_y)
-        move_cursor_col(0)
+        output << move_cursor_row_rel_seq(y - cursor_y)
+        output << move_cursor_col_seq(0)
         cursor_y = y
-        print "\e[K" unless new_line && old_line
+        output << "\e[K" unless new_line && old_line
         next unless new_line
 
         new_xs, new_ts = fill_line_segments(new_line, text_widths)
@@ -99,19 +95,19 @@ module Textui
         chunks.each do |key, chunk|
           width = chunk.size
           if key == :blank
-            move_cursor_col(base_x)
-            print ' ' * width
+            output << move_cursor_col_seq(base_x)
+            output << ' ' * width
           elsif key != :skip
             x, text = key
             text_width = text_widths[text]
             text = Unicode.substr(text, base_x - x, width) if x != base_x || text_width != width
-            move_cursor_col(base_x)
-            print "#{RESET_CSI}#{text}#{RESET_CSI}"
+            output << move_cursor_col_seq(base_x)
+            output << "#{RESET_CSI}#{text}#{RESET_CSI}"
           end
           base_x += width
         end
-        move_cursor_col(base_x)
-        print "\e[K"
+        output << move_cursor_col_seq(base_x)
+        output << "\e[K"
       end
 
       @text_widths = text_widths
@@ -121,14 +117,14 @@ module Textui
       new_x, new_y = new_cursor_pos || [0, 0]
       new_x = [new_x, @width - 1].min
       new_y = [new_y, @height - 1].min
-      move_cursor_row_rel(new_y - cursor_y)
-      move_cursor_col(new_x)
-      if new_cursor_pos
-        print SHOW_CURSOR
+      cursor_seq = move_cursor_row_rel_seq(new_y - cursor_y) + move_cursor_col_seq(new_x)
+      if output.empty?
+        output = cursor_seq + (new_cursor_pos ? SHOW_CURSOR : HIDE_CURSOR)
       else
-        print HIDE_CURSOR unless cursor_hidden
+        output = HIDE_CURSOR + output + cursor_seq + (new_cursor_pos ? SHOW_CURSOR : '')
       end
-      print has_clickable ? ENABLE_MOUSE_EVENT : DISABLE_MOUSE_EVENT
+      output << (has_clickable ? ENABLE_MOUSE_EVENT : DISABLE_MOUSE_EVENT)
+      print output
       @cursor_x = new_x
       @cursor_y = new_y
       @renderable_base_y = [@renderable_base_y, @height - lines_height, @height - @cursor_y - 1].min
@@ -143,16 +139,18 @@ module Textui
       [click_x, click_y, covered.reverse_each.find { _4 == zmax }&.[](4)]
     end
 
-    def move_cursor_row_rel(dy)
+    def move_cursor_row_rel_seq(dy)
       if dy < 0
-        print "\e[#{-dy}A"
+        "\e[#{-dy}A"
       elsif dy > 0
-        print "\r\n" * dy
+        "\r\n" * dy
+      else
+        ''
       end
     end
 
-    def move_cursor_col(x)
-      print "\e[#{x + 1}G"
+    def move_cursor_col_seq(x)
+      "\e[#{x + 1}G"
     end
 
     def measure_cursor_pos
