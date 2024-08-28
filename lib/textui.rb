@@ -4,6 +4,7 @@ require_relative 'textui/version'
 require_relative 'textui/input_recognizer'
 require_relative 'textui/unicode'
 require_relative 'textui/screen'
+require_relative 'textui/textarea'
 
 module Textui
   class Error < StandardError; end
@@ -35,7 +36,9 @@ end
 
 def example
   screen = Textui::Screen.new
-  component = RootComponent.new
+  # component = RootComponent.new
+  p Textui::Unicode.wrap_text("hello, world", 4)
+  component = Textui::Textarea.new(1, 1, 20, 4)
   screen.render(component)
 
   Textui::Event.each($stdin, tick: 0.1) do |type, data|

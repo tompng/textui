@@ -245,6 +245,25 @@ module Textui::Unicode
     end
   end
 
+  def self.wrap_text(text, width, offset: 0)
+    lines = [+'']
+    x = offset
+    text.grapheme_clusters.each do |gc|
+      w = char_width(gc)
+      if gc == "\n"
+        lines << +''
+        x = 0
+      elsif x == 0 || x + w <= width
+        lines.last << gc
+        x += w
+      else
+        lines << gc
+        x = w
+      end
+    end
+    [lines, x]
+  end
+
   def self.text_width(text)
     text.grapheme_clusters.sum { char_width(_1) }
   end
