@@ -21,6 +21,7 @@ class Textui::InputRecognizer
   KEYS["\x7F"] = :backspace
   KEYS["\e\x7F"] = :meta_backspace
   KEYS["\e[200~"] = :bracketed_paste
+  KEYS["\e[M"] = :mouse_event
   KEYS["\e"] = :escape
   KEYS["\e\e"] = :meta_escape
   KEYS["\x00"] = :ctrl_at
@@ -133,7 +134,21 @@ class Textui::Event
             input_timeout = Time.now + KEY_TIMEOUT
           else
             input_timeout = nil
-            yield :key, res if res
+            if res&.type == :mouse_event
+              mouse_type = (
+                case @input.getbyte
+                when 32 then :mouse_down
+                when 35 then :mouse_up
+                when 97 then :mouse_scroll_down
+                when 96 then :mouse_scroll_up
+                end
+              )
+              x = @input.getbyte - 33
+              y = @input.getbyte - 33
+              yield mouse_type, [x, y] if mouse_type
+            elsif res
+              yield :key, res
+            end
           end
         elsif mode == :tick
           next_tick = Time.now + @tick

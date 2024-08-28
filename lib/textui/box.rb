@@ -5,7 +5,8 @@ require_relative 'component'
 
 module Textui
   class Box < Component
-    attr_accessor :title, :component
+    attr_reader :title, :x, :y, :w, :h
+    attr_accessor :component
     def initialize(x, y, w, h, title: '')
       @x = x
       @y = y
@@ -42,8 +43,9 @@ module Textui
 
     def render
       prepare_render unless @line_segments
-      segments = @component&.render&.map do |x, y, text|
-        [@x + x + 1, @y + y + 1, text]
+      clickable_fallback = @component if @component&.clickable
+      segments = @component&.render&.map do |x, y, text, z, clickable|
+        [@x + x + 1, @y + y + 1, text, z, clickable || clickable_fallback]
       end
       @line_segments + (segments || [])
     end

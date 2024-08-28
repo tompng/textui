@@ -188,6 +188,7 @@ module Textui::Unicode
     total_width = 0
     output = +''
     seq = +''
+    return output if width == 0
     text.scan(/(\e\[0?m)|(\e\[[\d;]*m)|(\X)/).each do |(reset, csi, gc)|
       if total_width >= col
         if seq

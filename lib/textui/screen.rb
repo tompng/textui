@@ -7,6 +7,8 @@ module Textui
     FULLSCREEN_START = "\e[?1049h"
     FULLSCREEN_END = "\e[?1049l"
     HIDE_CURSOR = "\e[?25l"
+    ENABLE_MOUSE_EVENT = "\e[?1000h"
+    DISABLE_MOUSE_EVENT = "\e[?1000l"
     SHOW_CURSOR = "\e[?25h"
     RESET_CSI = "\e[0m"
 
@@ -16,6 +18,7 @@ module Textui
       Unicode.measure_widths
       @text_widths = {}
       @rendered_lines = []
+      @rendered_line_segments = []
       update_winsize
       @cursor_x, @renderable_base_y = measure_cursor_pos
       @cursor_y = 0
@@ -29,7 +32,9 @@ module Textui
       update_winsize
       print "\e[H\e[2J"
       @cursor_y = @cursor_x = 0
+      @renderable_base_y = 0
       @rendered_lines = []
+      @rendered_line_segments = []
     end
 
     def resize
@@ -60,6 +65,8 @@ module Textui
         text_widths[text] ||= @text_widths[text] || Unicode.colored_text_width(text)
         (new_lines[y] ||= []) << [x, text, z]
       end
+      has_clickable = line_segments.any? { _5 }
+
       new_lines.pop while new_lines.size > @height
       lines_height = [@rendered_lines.size, new_lines.size].max
       cursor_y = @cursor_y
@@ -109,6 +116,7 @@ module Textui
 
       @text_widths = text_widths
       @rendered_lines = new_rendered_lines
+      @rendered_line_segments = line_segments
 
       new_x, new_y = new_cursor_pos || [0, 0]
       new_x = [new_x, @width - 1].min
@@ -120,9 +128,19 @@ module Textui
       else
         print HIDE_CURSOR unless cursor_hidden
       end
+      print has_clickable ? ENABLE_MOUSE_EVENT : DISABLE_MOUSE_EVENT
       @cursor_x = new_x
       @cursor_y = new_y
       @renderable_base_y = [@renderable_base_y, @height - lines_height, @height - @cursor_y - 1].min
+    end
+
+    def clickable_at(click_x, click_y)
+      click_y -= @renderable_base_y
+      covered = @rendered_line_segments.select do |x, y, text|
+        y == click_y && x <= click_x && click_x < x + Unicode.colored_text_width(text)
+      end
+      zmax = covered.map { _4 }.compact.max
+      [click_x, click_y, covered.reverse_each.find { _4 == zmax }&.[](4)]
     end
 
     def move_cursor_row_rel(dy)
@@ -158,7 +176,7 @@ module Textui
       else
         print "\r\n" * (@rendered_lines.size - @cursor_y)
       end
-      print SHOW_CURSOR
+      print SHOW_CURSOR + DISABLE_MOUSE_EVENT
     end
   end
 end

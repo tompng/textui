@@ -1,5 +1,6 @@
 module Textui
   class Component
+    attr_accessor :clickable
     def tick; end
 
     def key_press(key); end

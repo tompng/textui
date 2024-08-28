@@ -40,11 +40,15 @@ begin
   box2 = Textui::Box.new(16, 0, 20, 10, title: 'textarea')
   box2.component = Textui::Textarea.new(0, 0, 18, 8)
   root = RootComponent.new([box1, box2])
+  box2.component.clickable = true
 
   screen.render(root)
 
   Textui::Event.each($stdin, tick: 0.1) do |type, data|
     case type
+    when :mouse_down, :mouse_up, :mouse_scroll_down, :mouse_scroll_up
+      x, y, component = screen.clickable_at(data[0], data[1])
+      component.send(type, x - box2.x - 1, y - box2.y - 1) if component.respond_to?(type)
     when :key
       if data.type == :ctrl_l
         screen.reset_screen
@@ -55,6 +59,8 @@ begin
       root.tick
     when :resize, :resume
       screen.resize
+    else
+      root.key_press(Textui::InputRecognizer::Key.new :else, [type, data].inspect)
     end
     screen.render(root)
   end

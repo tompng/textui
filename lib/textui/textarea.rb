@@ -21,6 +21,24 @@ module Textui
       @lines.join("\n")
     end
 
+    def mouse_down(x, y)
+      row = -@scroll_top
+      new_index, new_byte_pointer = nil
+      @lines.each_with_index do |line, i|
+        lines, = Unicode.wrap_text(line, @w)
+        if row + lines.size <= y
+          row += lines.size
+        else
+          new_index = i
+          new_byte_pointer = lines.take(y - row).sum(&:bytesize) + Unicode.substr(lines[y - row], 0, x).bytesize
+          break
+        end
+      end
+      @line_index = new_index || @lines.size - 1
+      @byte_pointer = new_byte_pointer || @lines[@line_index].bytesize
+      refresh
+    end
+
     def key_press(key)
       case key.type
       when :ctrl_a
@@ -77,7 +95,7 @@ module Textui
       when :bracketed_paste
         insert(key.raw.split(/\r\n?|\n/, -1).map { _1.delete("\x00-\x1F") }.join("\n"))
       else
-        insert("DEBUG[#{key.type}]\n")
+        insert("DEBUG[#{key.type}#{key.raw.inspect}]\n")
       end
       refresh
     end
