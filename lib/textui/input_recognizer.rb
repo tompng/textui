@@ -23,6 +23,7 @@ class Textui::InputRecognizer
   KEYS["\e[200~"] = :bracketed_paste
   KEYS["\e[M"] = :mouse_event
   KEYS["\e"] = :escape
+  KEYS["\e[Z"] = :shift_tab
   KEYS["\e\e"] = :meta_escape
   KEYS["\x00"] = :ctrl_at
   KEYS["\e\x00"] = :meta_ctrl_at

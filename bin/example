@@ -16,7 +16,9 @@ class RootComponent < Textui::Component
 
   def key_press(key)
     if key.type == :ctrl_i
-      @focus = @components.size == 0 ? 0 : (@focus + 1) % @components.size
+      @focus = (@focus + 1) % [@components.size, 1].max
+    elsif key.type == :shift_tab
+      @focus = (@focus - 1) % [@components.size, 1].max
     else
       @components[@focus]&.key_press(key)
     end
