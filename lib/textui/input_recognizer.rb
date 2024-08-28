@@ -58,7 +58,7 @@ class Textui::InputRecognizer
     return Key.new(type: key, raw:) if key
 
     raw.force_encoding(@encoding)
-    Key.new(type: :char, raw:) if raw.valid_encoding?
+    Key.new(type: raw.grapheme_clusters.size == 1 ? :char : :unknown, raw:) if raw.valid_encoding?
   end
 
   def test(byte)
