@@ -25,11 +25,15 @@ module Textui
       @height, @width = $stdin.winsize
     end
 
-    def resize
+    def reset_screen
       update_winsize
       print "\e[H\e[2J"
       @cursor_y = @cursor_x = 0
       @rendered_lines = []
+    end
+
+    def resize
+      reset_screen
     end
 
     def fill_line_segments(line_segments, width_hash)

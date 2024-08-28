@@ -46,7 +46,11 @@ begin
   Textui::Event.each($stdin, tick: 0.1) do |type, data|
     case type
     when :key
-      root.key_press(data)
+      if data.type == :ctrl_l
+        screen.reset_screen
+      else
+        root.key_press(data)
+      end
     when :tick
       root.tick
     when :resize, :resume
