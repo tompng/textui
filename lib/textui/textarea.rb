@@ -130,6 +130,8 @@ module Textui
           @line_index -= 1
           (*lines, line), = Unicode.wrap_text(@lines[@line_index], @w)
           @byte_pointer = lines.sum(&:bytesize) + Unicode.substr(line, 0, col).bytesize
+        else
+          @byte_pointer = 0
         end
       in :down
         if lines[row + 1]
@@ -137,6 +139,8 @@ module Textui
         elsif @line_index < @lines.size - 1
           @line_index += 1
           @byte_pointer = Unicode.substr(@lines[@line_index], 0, col).bytesize
+        else
+          @byte_pointer = @lines[@line_index].bytesize
         end
         lines
       end
