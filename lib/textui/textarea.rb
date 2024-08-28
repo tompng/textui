@@ -31,6 +31,11 @@ module Textui
         move_cursor_vertical(:up)
       when :down
         move_cursor_vertical(:down)
+      when :meta_up
+        @line_index = @byte_pointer = 0
+      when :meta_down
+        @line_index = @lines.size - 1
+        @byte_pointer = @lines[@line_index].bytesize
       when :left
         if @byte_pointer == 0 && @line_index > 0
           @line_index -= 1
@@ -57,9 +62,9 @@ module Textui
         end
       when :meta_backspace
         cursor_action(:delete, :left, /\P{word}*\p{word}*/)
-      when :meta_b
+      when :meta_b, :meta_left
         cursor_action(:move, :left, /\P{word}*\p{word}*/)
-      when :meta_f
+      when :meta_f, :meta_right
         cursor_action(:move, :right, /\P{word}*\p{word}*/)
       when :ctrl_j, :ctrl_m
         insert("\n")
