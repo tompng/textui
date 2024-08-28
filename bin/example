@@ -1,0 +1,64 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'bundler/setup'
+require 'textui'
+
+class RootComponent < Textui::Component
+  def initialize(components)
+    @components = components
+    @focus = 0
+  end
+
+  def cursor_pos
+    @components[@focus]&.cursor_pos
+  end
+
+  def key_press(key)
+    if key.type == :ctrl_i
+      @focus = @components.size == 0 ? 0 : (@focus + 1) % @components.size
+    else
+      @components[@focus]&.key_press(key)
+    end
+  end
+
+  def tick
+    @components.each(&:tick)
+  end
+
+  def render
+    @components.flat_map(&:render)
+  end
+end
+
+begin
+  puts 'TAB: switch focus'
+  puts 'CTRL-C: exit'
+  screen = Textui::Screen.new
+  box1 = Textui::Box.new(0, 5, 20, 8, title: 'textarea')
+  box1.component = Textui::Textarea.new(0, 0, 18, 6)
+  box2 = Textui::Box.new(16, 0, 20, 10, title: 'textarea')
+  box2.component = Textui::Textarea.new(0, 0, 18, 8)
+  root = RootComponent.new([box1, box2])
+
+  screen.render(root)
+
+  Textui::Event.each($stdin, tick: 0.1) do |type, data|
+    case type
+    when :key
+      root.key_press(data)
+    when :tick
+      root.tick
+    when :resize, :resume
+      screen.resize
+    end
+    screen.render(root)
+  end
+rescue Interrupt
+ensure
+  screen.cleanup
+  puts "\e[1mTEXTAREA1\e[0m"
+  puts box1.component.value
+  puts "\e[1mTEXTAREA2\e[0m"
+  puts box2.component.value
+end

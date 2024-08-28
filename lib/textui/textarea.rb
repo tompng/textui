@@ -1,17 +1,11 @@
 # frozen_string_literal: true
 
+require_relative 'component'
 require_relative 'unicode'
 
 module Textui
-  class Textarea
-    def initialize(x, y, w, h, text = '', border: true)
-      if border
-        @border = true
-        x += 1
-        y += 1
-        w -= 2
-        h -= 2
-      end
+  class Textarea < Component
+    def initialize(x, y, w, h, text = '')
       @x = x
       @y = y
       @w = w
@@ -21,6 +15,10 @@ module Textui
       @line_index = @lines.size - 1
       @byte_pointer = @lines[@line_index].bytesize
       @scroll_top = 0
+    end
+
+    def value
+      @lines.join("\n")
     end
 
     def key_press(key)
@@ -66,11 +64,15 @@ module Textui
       when :ctrl_j, :ctrl_m
         insert("\n")
       when :ctrl_k
-        cursor_action(:delete, :right, /.+/)
+        if @byte_pointer == @lines[@line_index].bytesize && @line_index < @lines.size - 1
+          @lines[@line_index, 2] = @lines[@line_index, 2].join
+        else
+          cursor_action(:delete, :right, /.+/)
+        end
       when :bracketed_paste
         insert(key.raw.split(/\r\n?|\n/, -1).map { _1.delete("\x00-\x1F") }.join("\n"))
       else
-        insert(key.type.inspect + "\n")
+        insert("DEBUG[#{key.type}]\n")
       end
       refresh
     end
@@ -117,8 +119,6 @@ module Textui
       end
     end
 
-    def tick; end
-
     def cursor_action(action, direction, pattern)
       pre = @lines[@line_index].byteslice(0, @byte_pointer)
       post = @lines[@line_index].byteslice(@byte_pointer..)
@@ -162,14 +162,6 @@ module Textui
     def build_lines_to_render
       blank_line = ' ' * @w
       backgrounds = @h.times.map { [@x, @y + _1, blank_line] }
-      if @border
-        # TODO: extract to box component
-        backgrounds << [@x - 1, @y - 1, '╭' + '─' * @w + '╮']
-        backgrounds << [@x - 1, @y + @h, '╰' + '─' * @w + '╯']
-        @h.times do |y|
-          backgrounds << [@x - 1, @y + y, '│'] << [@x + @w, @y + y, '│']
-        end
-      end
       wrapped_lines = []
       cursor_row = cursor_x = 0
       @lines.each_with_index do |line, i|
