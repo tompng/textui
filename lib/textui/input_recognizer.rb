@@ -155,6 +155,7 @@ class Textui::Event
           yield :tick
         else
           res = input_recognizer.consume(nil)
+          input_timeout = nil
           yield :key, res if res
         end
       end
