@@ -4,35 +4,6 @@
 require 'bundler/setup'
 require 'textui'
 
-class RootComponent < Textui::Container
-  def initialize
-    super
-    @focus = 0
-  end
-
-  def cursor_pos
-    @components[@focus]&.cursor_pos
-  end
-
-  def key_press(key)
-    if key.type == :ctrl_i
-      @focus = (@focus + 1) % [@components.size, 1].max
-    elsif key.type == :shift_tab
-      @focus = (@focus - 1) % [@components.size, 1].max
-    else
-      @components[@focus]&.key_press(key)
-    end
-  end
-
-  def tick
-    @components.each(&:tick)
-  end
-
-  def render
-    @components.flat_map(&:render)
-  end
-end
-
 begin
   puts 'TAB: switch focus'
   puts 'CTRL-C: exit'
@@ -43,10 +14,12 @@ begin
   box2 = Textui::Box.new(20, 10, title: 'textarea')
   textarea2 = Textui::Textarea.new(18, 8)
   box2.add(textarea2, 1, 1)
-  root = Textui::Container.new
+  root = Textui::RootContainer.new
   root.add(box1, 0, 5)
   root.add(box2, 16, 0)
   textarea1.clickable = true
+  textarea2.clickable = true
+  textarea1.focus
 
   screen.render(root)
 

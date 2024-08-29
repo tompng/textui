@@ -13,14 +13,6 @@ module Textui
       @title = title
     end
 
-    def cursor_pos
-      each_with_position do |component, (cx, cy)|
-        if (x, y = component.cursor_pos)
-          return [cx + x, cy + y]
-        end
-      end
-    end
-
     def prepare_render
       (title,), w = Unicode.wrap_text(@title, @w - 2)
       @line_segments = []

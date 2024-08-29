@@ -15,6 +15,8 @@ module Textui
       @scroll_top = 0
     end
 
+    def focusable = true
+
     def value
       @lines.join("\n")
     end
@@ -34,11 +36,16 @@ module Textui
       end
       @line_index = new_index || @lines.size - 1
       @byte_pointer = new_byte_pointer || @lines[@line_index].bytesize
+      focus
       refresh
     end
 
     def key_press(key)
       case key.type
+      when :ctrl_i
+        root.move_focus(self, :next)
+      when :shift_tab
+        root.move_focus(self, :prev)
       when :ctrl_a
         cursor_action(:move, :left, /.+/)
       when :ctrl_e

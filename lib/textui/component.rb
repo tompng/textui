@@ -3,6 +3,8 @@ module Textui
     attr_reader :parent
     attr_accessor :clickable
 
+    def focusable = false
+
     def tick; end
 
     def key_press(key); end
@@ -11,6 +13,14 @@ module Textui
       px, py = @parent&.absolute_position
       x, y = @parent&.position_of(self)
       [(px || 0) + (x || 0), (py || 0) + (y || 0)]
+    end
+
+    def focus
+      root&.focused_component = self if focusable
+    end
+
+    def root
+      @parent&.root
     end
 
     def cursor_pos; end
@@ -66,11 +76,10 @@ module Textui
       end
     end
 
-    def cursor_pos
-      each_with_position do |component, (cx, cy)|
-        if (x, y = component.cursor_pos)
-          return [cx + x, cy + y]
-        end
+    def traverse
+      components.each do |component|
+        yield component
+        component.traverse { yield _1 } if component.is_a?(Container)
       end
     end
 
@@ -87,6 +96,42 @@ module Textui
     def remove(component)
       @component_positions.delete(component)
       component._set_parent(nil)
+    end
+  end
+
+  class RootContainer < Container
+    attr_accessor :focused_component
+
+    def root() = self
+
+    def cursor_pos
+      pos = focused_component&.cursor_pos
+      return unless pos
+      if (x, y = focused_component&.cursor_pos)
+        ax, ay = focused_component.absolute_position
+        [ax + x, ay + y]
+      end
+    end
+
+    def move_focus(prev_focus, direction = :next)
+      focusable_components = []
+      traverse do |component|
+        focusable_components << component if component.focusable
+      end
+      i = focusable_components.index(prev_focus)
+      case direction
+      in :next
+        self.focused_component = focusable_components[((i || -1) + 1) % focusable_components.size]
+      in :prev
+        self.focused_component = focusable_components[((i || 0) - 1) % focusable_components.size]
+      end
+    end
+
+    def key_press(key)
+      unless focused_component
+        move_focus(nil, :next)
+      end
+      focused_component&.key_press(key)
     end
   end
 end
