@@ -149,8 +149,11 @@ module Textui
     end
 
     def key_press(key)
-      move_focus(nil, :next) unless focused_component
-      focused_component&.key_press(key)
+      if focused_component
+        focused_component.key_press(key)
+      else
+        move_focus(nil, :next)
+      end
     end
   end
 end

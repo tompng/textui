@@ -16,7 +16,7 @@ begin
   textarea1.focus
   Textui.event_loop fullscreen: false do |type, data|
     if type == :key && data.type == :ctrl_x
-      box1.parent ? box1.remove : Textui.add_child(box1, 0, 5)
+      textarea1.parent ? textarea1.remove : Textui.add_child(textarea1, 0, 5)
     end
     if type == :resize
       h, w = STDIN.winsize
