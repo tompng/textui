@@ -38,7 +38,14 @@ module Textui
     end
 
     def resize
-      reset_screen
+      update_winsize
+      line_widths = @rendered_lines.map { _3&.size || 0 }
+      y = (line_widths.take(@cursor_y) + [@cursor_x]).sum { [1 + (_1 - 1) / @width, 1].max }
+      print move_cursor_row_rel_seq(1 - y) + "\e[J"
+      @cursor_x, @renderable_base_y = measure_cursor_pos
+      @cursor_y = 0
+      @rendered_lines = []
+      @rendered_line_segments = []
     end
 
     def fill_line_segments(line_segments, width_hash)
@@ -59,7 +66,6 @@ module Textui
     end
 
     def render_differential(line_segments, new_cursor_pos)
-      cursor_hidden = true
       new_lines = []
       text_widths = {}
       line_segments.each do |x, y, text, z|
