@@ -106,8 +106,10 @@ module Textui
           end
           base_x += width
         end
-        output << move_cursor_col_seq(base_x)
-        output << "\e[K"
+        if base_x < @width
+          output << move_cursor_col_seq(base_x)
+          output << "\e[K"
+        end
       end
 
       @text_widths = text_widths
