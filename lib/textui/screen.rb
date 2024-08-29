@@ -13,6 +13,7 @@ module Textui
     RESET_CSI = "\e[0m"
 
     def initialize(fullscreen: false)
+      @mutex = Mutex.new
       @fullscreen = fullscreen
       print FULLSCREEN_START if @fullscreen
       Unicode.measure_widths
@@ -62,7 +63,9 @@ module Textui
     end
 
     def render(component)
-      render_differential(component ? component._render : [], component&.cursor_pos)
+      @mutex.synchronize do
+        render_differential(component ? component._render : [], component&.cursor_pos)
+      end
     end
 
     def render_differential(line_segments, new_cursor_pos)

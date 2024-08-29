@@ -7,47 +7,23 @@ require 'textui'
 begin
   puts 'TAB: switch focus'
   puts 'CTRL-C: exit'
-  screen = Textui::Screen.new
   box1 = Textui::Box.new(20, 8, title: 'textarea')
   textarea1 = Textui::Textarea.new(18, 6)
-  box1.add(textarea1, 1, 1)
+  box1.add_child(textarea1, 1, 1)
   box2 = Textui::Box.new(20, 10, title: 'textarea')
   textarea2 = Textui::Textarea.new(18, 8)
-  box2.add(textarea2, 1, 1)
-  root = Textui::RootContainer.new
-  root.add(box1, 0, 5)
-  root.add(box2, 16, 0)
+  box2.add_child(textarea2, 1, 1)
+  Textui.add_child(box1, 0, 5)
+  Textui.add_child(box2, 16, 0)
   textarea1.clickable = true
   textarea2.clickable = true
   textarea1.focus
-
-  screen.render(root)
-
-  Textui::Event.each($stdin, tick: 0.1) do |type, data|
-    case type
-    when :mouse_down, :mouse_up, :mouse_scroll_down, :mouse_scroll_up
-      x, y, component = screen.clickable_at(data[0], data[1])
-      if component && component.respond_to?(type)
-        cx, cy = component.absolute_position
-        component.send(type, x - cx, y - cy)
-      end
-    when :key
-      if data.type == :ctrl_l
-        screen.reset_screen
-      else
-        root.key_press(data)
-      end
-    when :tick
-      root.tick
-    when :resize, :resume
-      screen.resize
-    else
-      root.key_press(Textui::InputRecognizer::Key.new :else, [type, data].inspect)
+  Textui.event_loop fullscreen: false do |type, data|
+    if type == :key && data.type == :ctrl_x
+      box1.parent ? box1.remove : Textui.add_child(box1, 0, 5)
     end
-    screen.render(root)
   end
 rescue Interrupt
-  screen.cleanup
   puts "\e[1mTEXTAREA1\e[0m"
   puts textarea1.value
   puts "\e[1mTEXTAREA2\e[0m"

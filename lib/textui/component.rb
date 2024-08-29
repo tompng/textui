@@ -15,6 +15,14 @@ module Textui
       [(px || 0) + (x || 0), (py || 0) + (y || 0)]
     end
 
+    def remove
+      @parent&.remove_child(self)
+    end
+
+    def move(x, y)
+      @parent&.move_child(self, x, y)
+    end
+
     def focus
       root&.focused_component = self if focusable
     end
@@ -87,20 +95,31 @@ module Textui
       @component_positions[component]
     end
 
-    def add(component, x, y)
+    def add_child(component, x, y)
       component.parent.remove(component) if component.parent && component.parent != self
       @component_positions[component] = [x, y]
       component._set_parent(self)
     end
 
-    def remove(component)
+    def move_child(component, x, y)
+      raise 'Parent mismatch' if component.parent != self
+      @component_positions[component] = [x, y]
+    end
+
+    def remove_child(component)
       @component_positions.delete(component)
       component._set_parent(nil)
     end
   end
 
   class RootContainer < Container
-    attr_accessor :focused_component
+    def focused_component=(component)
+      @focused_component = component
+    end
+
+    def focused_component
+      @focused_component if @focused_component&.root == self
+    end
 
     def root() = self
 
@@ -128,9 +147,7 @@ module Textui
     end
 
     def key_press(key)
-      unless focused_component
-        move_focus(nil, :next)
-      end
+      move_focus(nil, :next) unless focused_component
       focused_component&.key_press(key)
     end
   end

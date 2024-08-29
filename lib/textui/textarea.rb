@@ -99,8 +99,6 @@ module Textui
         end
       when :bracketed_paste
         insert(key.raw.split(/\r\n?|\n/, -1).map { _1.delete("\x00-\x1F") }.join("\n"))
-      else
-        insert("DEBUG[#{key.type}#{key.raw.inspect}]\n")
       end
       refresh
     end
