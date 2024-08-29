@@ -62,7 +62,7 @@ module Textui
     end
 
     def render(component)
-      render_differential(component ? component.render : [], component&.cursor_pos)
+      render_differential(component ? component._render : [], component&.cursor_pos)
     end
 
     def render_differential(line_segments, new_cursor_pos)

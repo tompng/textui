@@ -5,9 +5,7 @@ require_relative 'unicode'
 
 module Textui
   class Textarea < Component
-    def initialize(x, y, w, h, text = '')
-      @x = x
-      @y = y
+    def initialize(w, h, text = '')
       @w = w
       @h = h
       @lines = text.split("\n", -1)
@@ -183,12 +181,14 @@ module Textui
 
     def render
       build_lines_to_render unless @lines_to_render
-      @lines_to_render
+      @lines_to_render.each do |x, y, text|
+        draw(x, y, text, clickable: clickable)
+      end
     end
 
     def build_lines_to_render
       blank_line = ' ' * @w
-      backgrounds = @h.times.map { [@x, @y + _1, blank_line] }
+      backgrounds = @h.times.map { [0, _1, blank_line] }
       wrapped_lines = []
       cursor_row = cursor_x = 0
       @lines.each_with_index do |line, i|
@@ -217,9 +217,9 @@ module Textui
         @scroll_top = cursor_row - @h + 1
       end
       @lines_to_render = backgrounds + wrapped_lines[@scroll_top, @h].each_with_index.map do |line, i|
-        [@x, @y + i, line]
+        [0, i, line]
       end
-      @cursor_pos = [@x + cursor_x, @y + cursor_row - @scroll_top]
+      @cursor_pos = [cursor_x, cursor_row - @scroll_top]
     end
   end
 end

@@ -4,9 +4,9 @@
 require 'bundler/setup'
 require 'textui'
 
-class RootComponent < Textui::Component
-  def initialize(components)
-    @components = components
+class RootComponent < Textui::Container
+  def initialize
+    super
     @focus = 0
   end
 
@@ -37,12 +37,16 @@ begin
   puts 'TAB: switch focus'
   puts 'CTRL-C: exit'
   screen = Textui::Screen.new
-  box1 = Textui::Box.new(0, 5, 20, 8, title: 'textarea')
-  box1.component = Textui::Textarea.new(0, 0, 18, 6)
-  box2 = Textui::Box.new(16, 0, 20, 10, title: 'textarea')
-  box2.component = Textui::Textarea.new(0, 0, 18, 8)
-  root = RootComponent.new([box1, box2])
-  box2.component.clickable = true
+  box1 = Textui::Box.new(20, 8, title: 'textarea')
+  textarea1 = Textui::Textarea.new(18, 6)
+  box1.add(textarea1, 1, 1)
+  box2 = Textui::Box.new(20, 10, title: 'textarea')
+  textarea2 = Textui::Textarea.new(18, 8)
+  box2.add(textarea2, 1, 1)
+  root = Textui::Container.new
+  root.add(box1, 0, 5)
+  root.add(box2, 16, 0)
+  textarea1.clickable = true
 
   screen.render(root)
 
@@ -50,7 +54,10 @@ begin
     case type
     when :mouse_down, :mouse_up, :mouse_scroll_down, :mouse_scroll_up
       x, y, component = screen.clickable_at(data[0], data[1])
-      component.send(type, x - box2.x - 1, y - box2.y - 1) if component.respond_to?(type)
+      if component && component.respond_to?(type)
+        cx, cy = component.absolute_position
+        component.send(type, x - cx, y - cy)
+      end
     when :key
       if data.type == :ctrl_l
         screen.reset_screen
@@ -67,10 +74,9 @@ begin
     screen.render(root)
   end
 rescue Interrupt
-ensure
   screen.cleanup
   puts "\e[1mTEXTAREA1\e[0m"
-  puts box1.component.value
+  puts textarea1.value
   puts "\e[1mTEXTAREA2\e[0m"
-  puts box2.component.value
+  puts textarea2.value
 end
