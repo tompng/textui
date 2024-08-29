@@ -7,20 +7,21 @@ require 'textui'
 begin
   puts 'TAB: switch focus'
   puts 'CTRL-C: exit'
-  box1 = Textui::Box.new(20, 8, title: 'textarea')
-  textarea1 = Textui::Textarea.new(18, 6)
-  box1.add_child(textarea1, 1, 1)
-  box2 = Textui::Box.new(20, 10, title: 'textarea')
-  textarea2 = Textui::Textarea.new(18, 8)
-  box2.add_child(textarea2, 1, 1)
-  Textui.add_child(box1, 0, 5)
-  Textui.add_child(box2, 16, 0)
+  textarea1 = Textui::Textarea.new(20, 8, text: 'hello', border: true, title: 'textarea1', title_align: :left)
+  textarea2 = Textui::Textarea.new(20, 10, text: 'hello', border: true, title: 'textarea1', title_align: :left)
+  Textui.add_child(textarea1, 0, 5)
+  Textui.add_child(textarea2, 16, 0)
   textarea1.clickable = true
   textarea2.clickable = true
   textarea1.focus
   Textui.event_loop fullscreen: false do |type, data|
     if type == :key && data.type == :ctrl_x
       box1.parent ? box1.remove : Textui.add_child(box1, 0, 5)
+    end
+    if type == :resize
+      h, w = STDIN.winsize
+      textarea1.width = [w / 3, 10].max
+      textarea2.height = [h / 3, 4].max
     end
   end
 rescue Interrupt

@@ -5,6 +5,8 @@ module Textui
 
     def focusable = false
 
+    def focused? = root&.focused_component == self
+
     def tick; end
 
     def key_press(key); end

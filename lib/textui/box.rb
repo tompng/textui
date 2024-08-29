@@ -5,28 +5,40 @@ require_relative 'component'
 
 module Textui
   class Box < Container
-    attr_reader :title, :x, :y, :w, :h
-    def initialize(w, h, title: '')
+    attr_reader :title, :width, :height, :title_align, :color_seq
+    def initialize(width, height, title: '', title_align: :center, color_seq: '')
       super()
-      @w = w
-      @h = h
+      @width = width
+      @height = height
       @title = title
+      @title_align = title_align
+      @color_seq = color_seq
+    end
+
+    def self.prepare_render(width, height, title: '', title_align: :center, color_seq: '')
+      (title,), w = Unicode.wrap_text(title, width - 2)
+      len = width - 2 - w
+      l = title_align == :left ? 0 : title_align == :right ? len : len / 2
+      line_segments = []
+      line_segments << [0, 0, color_seq + '╭' + '─' * l + title + '─' * (len - l) + '╮']
+      line_segments << [0, 0 + height - 1, color_seq + '╰' + '─' * (width - 2) + '╯']
+      v = color_seq + '│'
+      (1..height - 2).each do |y|
+        line_segments << [0, y, v] << [width - 1, y, v]
+      end
+      line_segments
     end
 
     def prepare_render
-      (title,), w = Unicode.wrap_text(@title, @w - 2)
-      @line_segments = []
-      l = @w - 2 - w
-
-      @line_segments << [0, 0, '╭' + '─' * (l / 2) + title + '─' * (l - l / 2) + '╮']
-      @line_segments << [0, 0 + @h - 1, '╰' + '─' * (@w - 2) + '╯']
-      (1..@h - 2).each do |y|
-        @line_segments << [0, y, '│'] << [@w - 1, y, '│']
+      arg = [width, height, { title: @title, title_align: @title_align, color_seq: @color_seq }]
+      unless @arg == arg
+        @line_segments = self.class.prepare_render(arg[0], arg[1], **arg[2])
+        @arg = arg
       end
     end
 
     def render
-      prepare_render unless @line_segments
+      prepare_render
       @line_segments.each { |x, y, t| draw(x, y, t) }
       super
     end

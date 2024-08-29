@@ -2,17 +2,32 @@
 
 require_relative 'component'
 require_relative 'unicode'
+require_relative 'box'
 
 module Textui
   class Textarea < Component
-    def initialize(w, h, text = '')
-      @w = w
-      @h = h
+    attr_accessor :title, :title, :title_align
+    def initialize(width, height, text: '', border: false, title: '', title_align: :center)
+      @border = border ? 1 : 0
+      @width = width - 2 * @border
+      @height = height - 2 * @border
+      @title = title
+      @title_align = title_align
       @lines = text.split("\n", -1)
       @lines << '' if @lines.empty?
       @line_index = @lines.size - 1
       @byte_pointer = @lines[@line_index].bytesize
       @scroll_top = 0
+    end
+
+    def width=(width)
+      @width = width
+      refresh
+    end
+
+    def height=(height)
+      @height = height
+      refresh
     end
 
     def focusable = true
@@ -22,10 +37,17 @@ module Textui
     end
 
     def mouse_down(x, y)
+      x -= @border
+      y -= @border
+      if y < 0 || y >= @height
+        focus
+        refresh
+        return
+      end
       row = -@scroll_top
       new_index, new_byte_pointer = nil
       @lines.each_with_index do |line, i|
-        lines, = Unicode.wrap_text(line, @w)
+        lines, = Unicode.wrap_text(line, @width)
         if row + lines.size <= y
           row += lines.size
         else
@@ -118,10 +140,10 @@ module Textui
 
     def move_cursor_vertical(dir)
       current_line = @lines[@line_index]
-      lines, = Unicode.wrap_text(current_line, @w)
-      clines, col = Unicode.wrap_text(current_line.byteslice(0, @byte_pointer), @w)
+      lines, = Unicode.wrap_text(current_line, @width)
+      clines, col = Unicode.wrap_text(current_line.byteslice(0, @byte_pointer), @width)
       row = clines.size - 1
-      if col == @w
+      if col == @width
         row += 1
         col = 0
       end
@@ -131,7 +153,7 @@ module Textui
           @byte_pointer = lines[0, row - 1].sum(&:bytesize) + Unicode.substr(lines[row - 1], 0, col).bytesize
         elsif @line_index > 0
           @line_index -= 1
-          (*lines, line), = Unicode.wrap_text(@lines[@line_index], @w)
+          (*lines, line), = Unicode.wrap_text(@lines[@line_index], @width)
           @byte_pointer = lines.sum(&:bytesize) + Unicode.substr(line, 0, col).bytesize
         else
           @byte_pointer = 0
@@ -189,42 +211,49 @@ module Textui
       @lines_to_render.each do |x, y, text|
         draw(x, y, text, clickable: clickable)
       end
+      return if @border == 0
+      border_args = [@width + 2, @height + 2, { title: @title, title_align: @title_align, color_seq: focused? ? "\e[31m" : '' }]
+      if @border_args != border_args
+        @border_args = border_args
+        @border_lines = Box.prepare_render(border_args[0], border_args[1], **border_args[2])
+      end
+      @border_lines.each { |x, y, text| draw(x, y, text, clickable: clickable) }
     end
 
     def build_lines_to_render
-      blank_line = ' ' * @w
-      backgrounds = @h.times.map { [0, _1, blank_line] }
+      blank_line = ' ' * @width
+      backgrounds = @height.times.map { [@border, @border + _1, blank_line] }
       wrapped_lines = []
       cursor_row = cursor_x = 0
       @lines.each_with_index do |line, i|
-        lines, x = Unicode.wrap_text(line, @w)
-        lines << '' if x == @w
+        lines, x = Unicode.wrap_text(line, @width)
+        lines << '' if x == @width
         if i == @line_index
-          clines, cx = Unicode.wrap_text(line.byteslice(0, @byte_pointer), @w)
+          clines, cx = Unicode.wrap_text(line.byteslice(0, @byte_pointer), @width)
           cursor_x = cx
           cursor_row = wrapped_lines.size + clines.size - 1
         end
         wrapped_lines.concat(lines)
       end
-      if cursor_x == @w
+      if cursor_x == @width
         cursor_x = 0
         cursor_row += 1
       end
 
-      if wrapped_lines.size <= @h
+      if wrapped_lines.size <= @height
         @scroll_top = 0
-      elsif @scroll_top > 0 && wrapped_lines.size - @scroll_top < @h
-        @scroll_top = wrapped_lines.size - @h
+      elsif @scroll_top > 0 && wrapped_lines.size - @scroll_top < @height
+        @scroll_top = wrapped_lines.size - @height
       end
       if cursor_row - @scroll_top < 0
         @scroll_top = cursor_row
-      elsif cursor_row - @scroll_top >= @h
-        @scroll_top = cursor_row - @h + 1
+      elsif cursor_row - @scroll_top >= @height
+        @scroll_top = cursor_row - @height + 1
       end
-      @lines_to_render = backgrounds + wrapped_lines[@scroll_top, @h].each_with_index.map do |line, i|
-        [0, i, line]
+      @lines_to_render = backgrounds + wrapped_lines[@scroll_top, @height].each_with_index.map do |line, i|
+        [@border, @border + i, line]
       end
-      @cursor_pos = [cursor_x, cursor_row - @scroll_top]
+      @cursor_pos = [@border + cursor_x, @border + cursor_row - @scroll_top]
     end
   end
 end
