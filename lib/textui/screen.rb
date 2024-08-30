@@ -4,6 +4,8 @@ require 'io/console'
 
 module Textui
   class Screen
+    ENABLE_BRACKETED_PASTE = "\e[?2004h"
+    DISABLE_BRACKETED_PASTE = "\e[?2004l"
     FULLSCREEN_START = "\e[?1049h"
     FULLSCREEN_END = "\e[?1049l"
     HIDE_CURSOR = "\e[?25l"
@@ -16,6 +18,7 @@ module Textui
       @mutex = Mutex.new
       @fullscreen = fullscreen
       print FULLSCREEN_START if @fullscreen
+      print ENABLE_BRACKETED_PASTE
       Unicode.measure_widths
       @text_widths = {}
       @rendered_lines = []
@@ -23,6 +26,16 @@ module Textui
       update_winsize
       @cursor_x, @renderable_base_y = measure_cursor_pos
       @cursor_y = 0
+    end
+
+    def resume
+      update_winsize
+      print FULLSCREEN_START if @fullscreen
+      print ENABLE_BRACKETED_PASTE
+      @cursor_x, @renderable_base_y = measure_cursor_pos
+      @cursor_y = 0
+      @rendered_lines = []
+      @rendered_line_segments = []
     end
 
     def update_winsize
@@ -185,7 +198,7 @@ module Textui
       else
         print "\r\n" * (@rendered_lines.size - @cursor_y)
       end
-      print SHOW_CURSOR + DISABLE_MOUSE_EVENT
+      print SHOW_CURSOR + DISABLE_MOUSE_EVENT + DISABLE_BRACKETED_PASTE
     end
   end
 end

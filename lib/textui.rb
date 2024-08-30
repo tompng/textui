@@ -44,7 +44,7 @@ module Textui
         @root.tick
       when :resume
         $stdin.raw!(intr: true)
-        screen.resize
+        screen.resume
       when :resize
         screen.resize
       end
