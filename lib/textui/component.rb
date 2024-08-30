@@ -25,6 +25,10 @@ module Textui
       @parent&.move_child(self, x, y)
     end
 
+    def blur(direction = nil)
+      root&.move_focus(direction) if focused?
+    end
+
     def focus
       root&.focused_component = self if focusable
     end
@@ -117,10 +121,11 @@ module Textui
   class RootContainer < Container
     def focused_component=(component)
       @focused_component = component
+      @blured = false
     end
 
     def focused_component
-      @focused_component if @focused_component&.root == self
+      @focused_component if @focused_component&.root == self && !@blured
     end
 
     def root() = self
@@ -134,25 +139,31 @@ module Textui
       end
     end
 
-    def move_focus(prev_focus, direction = :next)
+    def move_focus(direction = :next)
+      unless direction
+        @blured = true
+        return
+      end
       focusable_components = []
       traverse do |component|
         focusable_components << component if component.focusable
       end
-      i = focusable_components.index(prev_focus)
+      i = focusable_components.index(@focused_component)
       case direction
       in :next
-        self.focused_component = focusable_components[((i || -1) + 1) % focusable_components.size]
+        @focused_component = focusable_components[((i || -1) + 1) % focusable_components.size]
       in :prev
-        self.focused_component = focusable_components[((i || 0) - 1) % focusable_components.size]
+        @focused_component = focusable_components[((i || 0) - 1) % focusable_components.size]
       end
+      @blured = false
     end
 
     def key_press(key)
       if focused_component
         focused_component.key_press(key)
       else
-        move_focus(nil, :next)
+        @blured = false
+        move_focus(:next) unless focused_component
       end
     end
   end

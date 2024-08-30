@@ -64,10 +64,12 @@ module Textui
 
     def key_press(key)
       case key.type
+      when :escape
+        blur
       when :ctrl_i
-        root.move_focus(self, :next)
+        blur(:next)
       when :shift_tab
-        root.move_focus(self, :prev)
+        blur(:prev)
       when :ctrl_a
         cursor_action(:move, :left, /.+/)
       when :ctrl_e
