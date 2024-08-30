@@ -183,34 +183,61 @@ module Textui::Unicode
     end
   end
 
-  # TODO: multibyte
-  def self.substr(text, col, width)
+  def self.take_range(text, col, width, cover_begin:, cover_end:, padding:)
     total_width = 0
     output = +''
-    seq = +''
+    range_begin = 0 if col == 0
+    end_col = col + width
     return output if width == 0
     text.scan(/(\e\[0?m)|(\e\[[\d;]*m)|(\X)/).each do |(reset, csi, gc)|
-      if total_width >= col
-        if seq
-          output << seq
-          seq = nil
-        end
+      if range_begin
         if reset || csi
           output << (reset || csi)
         else
-          output << gc
-          total_width += char_width(gc)
-          break if total_width >= col + width
+          w = char_width(gc)
+          total_width += w
+          if total_width < col + width
+            output << gc
+          elsif total_width == end_col
+            output << gc
+            return [range_begin, output]
+          elsif cover_end
+            output << gc
+            return [range_begin, output]
+          else
+            output << ' ' if padding
+            return [range_begin, output]
+          end
         end
       elsif gc
-        total_width += char_width(gc)
+        w = char_width(gc)
+        left = total_width
+        total_width += w
+        if total_width >= col
+          if total_width == col
+            range_begin = col
+          elsif cover_begin || left == col
+            range_begin = left
+            output << gc
+          elsif padding
+            output << ' '
+            range_begin = col
+          else
+            range_begin = total_width
+          end
+        end
       elsif reset
-        seq.clear
+        output.clear
       elsif csi
-        seq << csi
+        output << csi
       end
     end
-    return output
+    output << ' ' * (end_col - total_width) if padding
+    [range_begin, output]
+  end
+
+  def self.substr(text, col, width)
+    take_range(text, col, width, cover_begin: false, cover_end: false, padding: false)[1]
   end
 
   def self.char_width(grapheme_cluster)

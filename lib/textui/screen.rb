@@ -122,9 +122,15 @@ module Textui
           elsif key != :skip
             x, text = key
             text_width = text_widths[text]
-            text = Unicode.substr(text, base_x - x, width) if x != base_x || text_width != width
-            output << move_cursor_col_seq(base_x)
-            output << "#{RESET_CSI}#{text}#{RESET_CSI}"
+            if x == base_x && text_width == width
+              output << move_cursor_col_seq(base_x)
+            else
+              cover_begin = base_x > 0 && new_xs[base_x - 1] == x && new_ts[base_x - 1] == text
+              cover_end = new_xs[base_x + 1] == x && new_ts[base_x + 1] == text
+              pos, text = Unicode.take_range(text, base_x - x, width, cover_begin:, cover_end:, padding: true)
+              output << move_cursor_col_seq(x + pos)
+            end
+            output << "#{text}#{RESET_CSI}"
           end
           base_x += width
         end
@@ -145,7 +151,7 @@ module Textui
       if output.empty?
         output = cursor_seq + (new_cursor_pos ? SHOW_CURSOR : HIDE_CURSOR)
       else
-        output = HIDE_CURSOR + output + cursor_seq + (new_cursor_pos ? SHOW_CURSOR : '')
+        output = HIDE_CURSOR + RESET_CSI + output + cursor_seq + (new_cursor_pos ? SHOW_CURSOR : '')
       end
       output << (has_clickable ? ENABLE_MOUSE_EVENT : DISABLE_MOUSE_EVENT)
       print output
