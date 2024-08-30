@@ -212,7 +212,7 @@ module Textui
         draw(x, y, text, clickable: clickable)
       end
       return if @border == 0
-      border_args = [@width + 2, @height + 2, { title: @title, title_align: @title_align, color_seq: focused? ? "\e[31m" : '' }]
+      border_args = [@width + 2, @height + 2, { title: @title, title_align: @title_align, bold: focused? }]
       if @border_args != border_args
         @border_args = border_args
         @border_lines = Box.prepare_render(border_args[0], border_args[1], **border_args[2])
