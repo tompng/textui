@@ -42,7 +42,10 @@ module Textui
         end
       when :tick
         @root.tick
-      when :resize, :resume
+      when :resume
+        $stdin.raw!(intr: true)
+        screen.resize
+      when :resize
         screen.resize
       end
       yield type, data if block_given?
