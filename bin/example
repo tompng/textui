@@ -9,20 +9,20 @@ class Foo < Textui::Component
   def initialize
     super
     @tick = 0
-    @chr = 'a'
+    @paused = false
     self.clickable = true
   end
 
   def mouse_down(x, y)
-    @chr = @chr.succ
+    @paused = !@paused
   end
 
   def tick
-    @tick += 1
+    @tick += 1 unless @paused
   end
 
   def render
-    draw(0, 0, @chr * (@tick % 5))
+    draw(0, 0, 5.times.map { "\e[48;5;#{240+(@tick-_1)%10}m " }.join)
   end
 end
 
