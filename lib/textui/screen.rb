@@ -50,7 +50,7 @@ module Textui
     end
 
     def fill_line_segments(line_segments, width_hash)
-      znils, zindexed = line_segments.partition { _3 }
+      zindexed, znils = line_segments.partition { _3 }
       zindexed = zindexed.sort_by.with_index { |(_, _, z), i| [z, i] }
       xs = []
       ts = []

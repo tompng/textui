@@ -220,8 +220,9 @@ module Textui
 
     def render
       build_lines_to_render unless @lines_to_render
+      z_index = focused? ? 1 : nil
       @lines_to_render.each do |x, y, text|
-        draw(x, y, text, clickable: clickable)
+        draw(x, y, text, z_index:, clickable: clickable)
       end
       return if @border == 0
       border_args = [@width + 2, @height + 2, { title: @title, title_align: @title_align, bold: focused? }]
@@ -229,7 +230,7 @@ module Textui
         @border_args = border_args
         @border_lines = Box.prepare_render(border_args[0], border_args[1], **border_args[2])
       end
-      @border_lines.each { |x, y, text| draw(x, y, text, clickable: clickable) }
+      @border_lines.each { |x, y, text| draw(x, y, text, z_index:, clickable: clickable) }
     end
 
     def build_lines_to_render
