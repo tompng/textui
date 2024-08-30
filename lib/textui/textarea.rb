@@ -7,7 +7,7 @@ require_relative 'box'
 module Textui
   class Textarea < Component
     attr_accessor :title, :title, :title_align
-    def initialize(width, height, text: '', border: false, title: '', title_align: :center)
+    def initialize(width, height, text: '', border: true, title: '', title_align: :center)
       @border = border ? 1 : 0
       @width = width - 2 * @border
       @height = height - 2 * @border
@@ -81,14 +81,14 @@ module Textui
       when :meta_down
         @line_index = @lines.size - 1
         @byte_pointer = @lines[@line_index].bytesize
-      when :left
+      when :left, :ctrl_b
         if @byte_pointer == 0 && @line_index > 0
           @line_index -= 1
           @byte_pointer = @lines[@line_index].bytesize
         else
           cursor_action(:move, :left, /\X/)
         end
-      when :right
+      when :right, :ctrl_f
         if @line_index < @lines.size - 1 && @byte_pointer == @lines[@line_index].bytesize
           @line_index += 1
           @byte_pointer = 0
@@ -104,6 +104,18 @@ module Textui
           @lines[@line_index, 2] = @lines[@line_index, 2].join
         else
           cursor_action(:delete, :left, /\X/)
+        end
+      when :ctrl_d
+        if @lines[@line_index].bytesize == @byte_pointer
+          @lines[@line_index, 2] = @lines[@line_index, 2].join
+        else
+          cursor_action(:delete, :right, /\X/)
+        end
+      when :meta_d
+        if @lines[@line_index].bytesize == @byte_pointer
+          @lines[@line_index, 2] = @lines[@line_index, 2].join
+        else
+          cursor_action(:delete, :right, /\P{word}*\p{word}*/)
         end
       when :meta_backspace
         cursor_action(:delete, :left, /\P{word}*\p{word}*/)
