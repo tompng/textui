@@ -188,7 +188,7 @@ module Textui::Unicode
     output = +''
     range_begin = 0 if col == 0
     end_col = col + width
-    return output if width == 0
+    return [0, output] if width == 0
     text.scan(/(\e\[0?m)|(\e\[[\d;]*m)|(\X)/).each do |(reset, csi, gc)|
       if range_begin
         if reset || csi
