@@ -39,6 +39,7 @@ module Textui
     def mouse_down(x, y)
       x -= @border
       y -= @border
+      x = 0 if x < 0
       if y < 0 || y >= @height
         focus
         refresh
