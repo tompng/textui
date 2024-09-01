@@ -9,12 +9,18 @@ class Foo < Textui::Component
   def initialize
     super
     @tick = 0
+    @base = 120
     @paused = false
     self.clickable = true
   end
 
-  def mouse_down(x, y)
-    @paused = !@paused
+  def mouse_down(x, y, data)
+    case data
+    when :color
+      @base = (@base + 6) % 252
+    when :toggle
+      @paused = !@paused
+    end
   end
 
   def tick
@@ -22,7 +28,8 @@ class Foo < Textui::Component
   end
 
   def render
-    draw(0, 0, 5.times.map { "\e[48;5;#{240+(@tick-_1)%10}m " }.join)
+    draw(0, 0, 5.times.map { "\e[48;5;#{@base+(@tick-_1)%5}m " }.join, click: :toggle)
+    draw(8, 0, "\e[48;5;#{@base}mchange color", click: :color)
   end
 end
 

@@ -36,7 +36,7 @@ module Textui
       @lines.join("\n")
     end
 
-    def mouse_down(x, y)
+    def mouse_down(x, y, _data)
       x -= @border
       y -= @border
       x = 0 if x < 0
@@ -225,7 +225,7 @@ module Textui
       build_lines_to_render unless @lines_to_render
       z_index = focused? ? 1 : nil
       @lines_to_render.each do |x, y, text|
-        draw(x, y, text, z_index:, clickable: clickable)
+        draw(x, y, text, z_index:, click: clickable)
       end
       return if @border == 0
       border_args = [@width + 2, @height + 2, { title: @title, title_align: @title_align, bold: focused? }]
@@ -233,7 +233,7 @@ module Textui
         @border_args = border_args
         @border_lines = Box.prepare_render(border_args[0], border_args[1], **border_args[2])
       end
-      @border_lines.each { |x, y, text| draw(x, y, text, z_index:, clickable: clickable) }
+      @border_lines.each { |x, y, text| draw(x, y, text, z_index:, click: clickable) }
     end
 
     def build_lines_to_render

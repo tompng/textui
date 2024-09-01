@@ -29,10 +29,10 @@ module Textui
     Textui::Event.each($stdin, tick:) do |type, data|
       case type
       when :mouse_down, :mouse_up, :mouse_scroll_down, :mouse_scroll_up
-        x, y, component = screen.clickable_at(data[0], data[1])
+        x, y, component, data = screen.clickable_at(data[0], data[1])
         if component && component.respond_to?(type)
           cx, cy = component.absolute_position
-          component.send(type, x - cx, y - cy)
+          component.send(type, x - cx, y - cy, data)
         end
       when :key
         if data.type == :ctrl_l

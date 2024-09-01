@@ -166,7 +166,8 @@ module Textui
         y == click_y && x <= click_x && click_x < x + Unicode.colored_text_width(text)
       end
       zmax = covered.map { _4 }.compact.max
-      [click_x, click_y, covered.reverse_each.find { _4 == zmax }&.[](4)]
+      clicked = covered.reverse_each.find { _4 == zmax }
+      [click_x, click_y, clicked&.[](4), clicked&.[](5)]
     end
 
     def move_cursor_row_rel_seq(dy)

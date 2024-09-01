@@ -39,8 +39,8 @@ module Textui
 
     def cursor_pos; end
 
-    def draw(x, y, text, z_index: nil, clickable: @clickable)
-      @rendered << [x, y, text, z_index, (self if clickable)]
+    def draw(x, y, text, z_index: nil, click: @clickable)
+      @rendered << [x, y, text, z_index, (self if click), click]
     end
 
     def _render
@@ -84,8 +84,8 @@ module Textui
 
     def render
       @component_positions.flat_map do |component, (cx, cy)|
-        component._render.map do |x, y, text, z, clickable|
-          @rendered << [x + cx, y + cy, text, z, clickable]
+        component._render.map do |x, y, text, z, clickable, data|
+          @rendered << [x + cx, y + cy, text, z, clickable, data]
         end
       end
     end
