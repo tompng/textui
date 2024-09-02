@@ -4,8 +4,8 @@ require_relative 'component'
 module Textui
   class Text < Component
     attr_reader :content, :width, :color_seq
-    def initialize(content, width: nil, color_seq: '')
-      @content, @width, @color_seq = content, width, color_seq
+    def initialize(content, width: nil, left: 0, top: 0, color_seq: '')
+      @content, @left, @top, @width, @color_seq = content, left, top, width, color_seq
       reconstruct
     end
 

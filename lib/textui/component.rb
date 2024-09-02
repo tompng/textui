@@ -23,7 +23,7 @@ module Textui
     end
 
     def key_press(key)
-      children.each { _1.key_press(key) }
+      trigger_event(:key, key)
     end
 
     def absolute_position
@@ -36,7 +36,9 @@ module Textui
     end
 
     def blur(direction = nil)
-      root&.move_focus(direction) if focused?
+      return unless focused?
+
+      root&.move_focus(direction)
     end
 
     def focus
@@ -49,7 +51,7 @@ module Textui
 
     def cursor_pos; end
 
-    def draw(x, y, text, z_index: nil, click: @clickable)
+    def draw(x, y, text, z_index: nil, click: @clickable.nil? ? @clickable_by_callbacks : @clickable)
       raise '`draw` can only called from render method' unless @rendered
       @rendered << [x, y, text, z_index, (self if click), click]
     end
@@ -95,44 +97,94 @@ module Textui
       @children -= [component]
       component._set_parent(nil)
     end
+
+    def self.define_callbacks(*names)
+      names.each do |name|
+        class_eval <<~RUBY
+          def on_#{name}(&block)
+            raise ArgumentError, 'block is required' unless block
+            self.on_#{name} = block
+          end
+
+          def on_#{name}=(block)
+            raise ArgumentError, 'Invalid callback' unless block.nil? || block.is_a?(Proc)
+            event_callbacks[:#{name}] = block
+            on_update_callbacks
+          end
+        RUBY
+      end
+    end
+
+    private def on_update_callbacks
+      @clickable_by_callbacks = %i[mouse_up mouse_down mouse_scroll_up mouse_scroll_down].any? { event_callbacks[_1] }
+    end
+
+    private def event_callbacks
+      @event_callbacks ||= {}
+    end
+
+    def trigger_event(name, arg)
+      if (callback = event_callbacks[name])
+        callback.arity == 0 ? callback.call : callback.call(arg)
+      end
+    end
+
+    def mouse_up(e) = trigger_event(:mouse_up, e)
+    def mouse_down(e) = trigger_event(:mouse_down, e)
+    def mouse_scroll_up(e) = trigger_event(:mouse_scroll_up, e)
+    def mouse_scroll_down(e) = trigger_event(:mouse_scroll_down, e)
+
+    define_callbacks :mouse_up, :mouse_down, :mouse_scroll_up, :mouse_scroll_down
   end
 
   class RootContainer < Component
+    attr_writer :cursor_pos
+
     def focused_component=(component)
+      current = focused_component
+      current.trigger_event(:blur, current) if current && current != component
+      component.trigger_event(:focus, component) if component && current != component
       @focused_component = component
       @blured = false
     end
 
     def focused_component
-      @focused_component if @focused_component&.root == self && !@blured
+      @focused_component if @focused_component&.root == self && !@blured && @focused_component.focusable
     end
 
-    def root() = self
+    def root = self
 
     def cursor_pos
       pos = focused_component&.cursor_pos
       return unless pos
       if (x, y = focused_component&.cursor_pos)
         ax, ay = focused_component.absolute_position
-        [ax + x, ay + y]
+        return [ax + x, ay + y]
       end
+      @cursor_pos
     end
 
     def move_focus(direction = :next)
       unless direction
+        current = focused_component
+        current.trigger_event(:blur, current) if current
         @blured = true
         return
       end
       focusable_components = []
       traverse_child do |component|
-        focusable_components << component if component.focusable
+        focusable_components << component if component == @focused_component || component.focusable
       end
       i = focusable_components.index(@focused_component)
+      if i == 0 && focusable_components.size == 1
+        @blured = true
+        return
+      end
       case direction
       in :next
-        @focused_component = focusable_components[((i || -1) + 1) % focusable_components.size]
+        self.focused_component = focusable_components[((i || -1) + 1) % focusable_components.size]
       in :prev
-        @focused_component = focusable_components[((i || 0) - 1) % focusable_components.size]
+        self.focused_component = focusable_components[((i || 0) - 1) % focusable_components.size]
       end
       @blured = false
     end
@@ -144,6 +196,9 @@ module Textui
         @blured = false
         move_focus(:next) unless focused_component
       end
+      trigger_event(:key_press, key)
     end
+
+    define_callbacks :key_press
   end
 end

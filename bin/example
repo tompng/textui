@@ -6,8 +6,9 @@ require 'textui'
 
 require 'textui/text'
 class Foo < Textui::Component
-  def initialize
-    super
+  def initialize(left: 0, top: 0)
+    @left = left
+    @top = top
     @tick = 0
     @base = 120
     @paused = false
@@ -36,26 +37,23 @@ end
 begin
   message = Textui::Text.new("\e[1mTAB\e[m: switch focus\n\e[1mCTRL-C\e[m: exit")
   Textui.add_child(message)
+  log = Textui::Text.new('', width: 80, left: 40)
+  Textui.add_child(log)
   4.times do |i|
-    textarea = Textui::Textarea.new(11, 5, text: "text#{i}", title: i.to_s, title_align: :left)
-    textarea.clickable = true
-    textarea.left = i * 2
-    textarea.top = 3 + i % 2 * 2 + i / 2
+    textarea = Textui::Textarea.new(11, 5, text: "text#{i}", left: i * 2, top: 3 + i % 2 * 2 + i / 2, title: i.to_s, title_align: :left, clickable: true)
     Textui.add_child(textarea)
   end
-  textarea1 = Textui::Textarea.new(20, 8, text: "Hello,\nWorld! 1", title: 'Textarea1', title_align: :left)
-  textarea2 = Textui::Textarea.new(20, 10, text: "Hello,\nWorld! 2", title: 'Textarea2', title_align: :left)
-  textarea1.left = 0
-  textarea1.top = 8
-  textarea2.left = 16
-  textarea2.top = 3
+  message.on_mouse_down { |e| log.content += "[click #{e.x} #{e.y}]" }
+  textarea1 = Textui::Textarea.new(20, 8, top: 8, text: "Hello,\nWorld! 1", title: 'Textarea1', title_align: :left, clickable: true)
+  textarea2 = Textui::Textarea.new(20, 10, left: 16 ,top: 3, text: "Hello,\nWorld! 2", title: 'Textarea2', title_align: :left, clickable: true)
+  textarea1.on_submit { log.content += '[submit]' }
+  textarea1.on_focus { log.content += '[focus]' }
+  textarea1.on_blur { log.content += '[blur]' }
+  textarea2.on_change { log.content += '[change]' }
   Textui.add_child(textarea1)
   Textui.add_child(textarea2)
-  foo = Foo.new
-  foo.top = 2
+  foo = Foo.new(left: 0, top: 2)
   Textui.add_child(foo)
-  textarea1.clickable = true
-  textarea2.clickable = true
   textarea1.focus
 
   Textui.event_loop fullscreen: false do |type, data|

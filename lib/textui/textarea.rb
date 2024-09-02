@@ -6,8 +6,15 @@ require_relative 'box'
 
 module Textui
   class Textarea < Component
+    attr_reader :disabled
+
+    define_callbacks :change, :submit, :blur, :focus
+
     attr_accessor :title, :title, :title_align
-    def initialize(width, height, text: '', border: true, title: '', title_align: :center)
+    def initialize(width, height, left: 0, top: 0, text: '', border: true, title: '', title_align: :center, clickable: false)
+      @left = left
+      @top = top
+      @clickable = clickable
       @border = border ? 1 : 0
       @width = width - 2 * @border
       @height = height - 2 * @border
@@ -17,6 +24,7 @@ module Textui
       @lines << '' if @lines.empty?
       @line_index = @lines.size - 1
       @byte_pointer = @lines[@line_index].bytesize
+      @disabled = false
       @scroll_top = 0
     end
 
@@ -30,13 +38,24 @@ module Textui
       refresh
     end
 
-    def focusable = true
+    def disabled=(disabled)
+      blur if !disabled && focused?
+      @disabled = disabled
+    end
+
+    def clickable
+      @clickable && !@disabled
+    end
+
+    def focusable = !disabled
 
     def value
       @lines.join("\n")
     end
 
     def mouse_down(e)
+      return if disabled
+
       x = e.x - @border
       y = e.y - @border
       x = 0 if x < 0
@@ -64,6 +83,9 @@ module Textui
     end
 
     def key_press(key)
+      return if disabled
+
+      super
       case key.type
       when :escape
         blur
@@ -104,19 +126,19 @@ module Textui
         if @byte_pointer == 0 && @line_index > 0 && @line_index < @lines.size
           @line_index -= 1
           @byte_pointer = @lines[@line_index].bytesize
-          @lines[@line_index, 2] = @lines[@line_index, 2].join
+          join_line(@line_index)
         else
           cursor_action(:delete, :left, /\X/)
         end
       when :ctrl_d
         if @lines[@line_index].bytesize == @byte_pointer
-          @lines[@line_index, 2] = @lines[@line_index, 2].join
+          join_line(@line_index)
         else
           cursor_action(:delete, :right, /\X/)
         end
       when :meta_d
         if @lines[@line_index].bytesize == @byte_pointer
-          @lines[@line_index, 2] = @lines[@line_index, 2].join
+          join_line(@line_index)
         else
           cursor_action(:delete, :right, /\P{word}*\p{word}*/)
         end
@@ -127,10 +149,12 @@ module Textui
       when :meta_f, :meta_right
         cursor_action(:move, :right, /\P{word}*\p{word}*/)
       when :ctrl_j, :ctrl_m
-        insert("\n")
+        insert("\n" + key.raw.inspect)
+      when :meta_ctrl_j, :meta_ctrl_m
+        trigger_event(:submit, self)
       when :ctrl_k
         if @byte_pointer == @lines[@line_index].bytesize && @line_index < @lines.size - 1
-          @lines[@line_index, 2] = @lines[@line_index, 2].join
+          join_line
         else
           cursor_action(:delete, :right, /.+/)
         end
@@ -151,6 +175,7 @@ module Textui
         @line_index += pre_lines.size
         @byte_pointer = before_cursor.bytesize
       end
+      trigger_event(:change, self)
     end
 
     def move_cursor_vertical(dir)
@@ -193,6 +218,8 @@ module Textui
       return unless text.start_with?(pattern)
 
       len = text[pattern].bytesize
+      return if len.zero?
+
       case action
       in :move
         case direction
@@ -203,13 +230,19 @@ module Textui
         end
       in :delete
         case direction
-        when :left
+        in :left
           @lines[@line_index].bytesplice(@byte_pointer - len, len, '')
           @byte_pointer -= len
-        when :right
+        in :right
           @lines[@line_index].bytesplice(@byte_pointer, len, '')
         end
+        trigger_event(:change, self)
       end
+    end
+
+    def join_line
+      @lines[@line_index, 2] = @lines[@line_index, 2].join
+      trigger_event(:change, self)
     end
 
     def refresh

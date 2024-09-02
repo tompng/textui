@@ -32,7 +32,7 @@ class Textui::InputRecognizer
   KEYS["\e\x00"] = :meta_ctrl_at
   ('a'..'z').each do |c|
     KEYS[(c.ord % 32).chr] = :"ctrl_#{c}"
-    KEYS["\e#{(c.ord % 32).chr}"] = :"ctrl_#{c}"
+    KEYS["\e#{(c.ord % 32).chr}"] = :"meta_ctrl_#{c}"
     KEYS["\e#{c}"] = :"meta_#{c}"
     KEYS["\e#{c.upcase}"] = :"meta_#{c.upcase}"
   end
