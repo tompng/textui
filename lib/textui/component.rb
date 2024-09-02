@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Textui
   class Component
     attr_reader :parent
@@ -48,17 +50,16 @@ module Textui
     def cursor_pos; end
 
     def draw(x, y, text, z_index: nil, click: @clickable)
+      raise '`draw` can only called from render method' unless @rendered
       @rendered << [x, y, text, z_index, (self if click), click]
     end
 
     def _render
       @rendered = []
       render
-      @previous_rendered = @rendered
-    end
-
-    def render_previous
-      @rendered = @previous_rendered
+      result = @rendered
+      @rendered = nil
+      result
     end
 
     def render
