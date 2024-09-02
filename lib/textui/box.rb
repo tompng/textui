@@ -17,6 +17,7 @@ module Textui
 
     BOLD = "┏┓┗┛━┃"
     FAINT = "┌┐└┘─│"
+    FALLBACK='++++-|'
 
     def self.prepare_render(width, height, title: '', title_align: :center, color_seq: '', bold: false)
       w = 0
@@ -28,6 +29,10 @@ module Textui
       len = width - 2 - w
       l = title_align == :left ? 1 : title_align == :right ? len - 1 : len / 2
       chars = bold ? BOLD : FAINT
+      if Unicode.ambiguous_width == 2
+        chars = FALLBACK
+        color_seq += "\e[1m" if bold
+      end
       horizontal = chars[4]
       line_segments = []
       line_segments << [0, 0, color_seq + chars[0] + horizontal * l + title + horizontal * (len - l) + chars[1]]

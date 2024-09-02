@@ -173,6 +173,8 @@ module Textui::Unicode
     @standalone_nonspacing_mark_width = measure_char_width("\u{0300}", 0..1) || 0
   end
 
+  def self.ambiguous_width = @ambiguous_width
+
   def self.measure_char_width(char, range)
     $stdin.raw do
       print "\r#{char}\e[6n\r\e[K"
