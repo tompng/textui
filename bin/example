@@ -14,8 +14,8 @@ class Foo < Textui::Component
     self.clickable = true
   end
 
-  def mouse_down(x, y, data)
-    case data
+  def mouse_down(e)
+    case e.data
     when :color
       @base = (@base + 6) % 252
     when :toggle

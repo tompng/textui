@@ -7,9 +7,13 @@ module Textui
 
     def focused? = root&.focused_component == self
 
-    def tick; end
+    def tick
+      children.each(&:tick)
+    end
 
-    def key_press(key); end
+    def key_press(key)
+      children.each { _1.key_press(key) }
+    end
 
     def absolute_position
       px, py = @parent&.absolute_position
@@ -53,55 +57,40 @@ module Textui
       @rendered = @previous_rendered
     end
 
-    def render; end
-
-    def _set_parent(parent)
-      @parent = parent
-    end
-  end
-
-  class Container < Component
-    def initialize
-      super
-      @component_positions = {}
-    end
-
-    def components
-      @component_positions.keys
-    end
-
-    def each_with_position
-      @component_positions.each { yield _1, _2 }
-    end
-
-    def tick
-      components.each(&:tick)
-    end
-
-    def key_press(key)
-      components.each { _1.key_press(key) }
-    end
-
     def render
-      @component_positions.flat_map do |component, (cx, cy)|
-        component._render.map do |x, y, text, z, clickable, data|
+      @component_positions&.each do |component, (cx, cy)|
+        component._render.each do |x, y, text, z, clickable, data|
           @rendered << [x + cx, y + cy, text, z, clickable, data]
         end
       end
     end
 
-    def traverse
-      components.each do |component|
+    def _set_parent(parent)
+      @parent = parent
+    end
+
+    def children
+      @component_positions&.keys || []
+    end
+
+    def each_child_with_position
+      @component_positions&.each { yield _1, _2 }
+    end
+
+
+    def traverse_child
+      children.each do |component|
         yield component
-        component.traverse { yield _1 } if component.is_a?(Container)
+        component.traverse_child { yield _1 }
       end
     end
 
     def position_of(component)
-      @component_positions[component]
+      @component_positions&.[](component)
     end
 
     def add_child(component, x, y)
+      @component_positions ||= {}
       component.parent.remove(component) if component.parent && component.parent != self
       @component_positions[component] = [x, y]
       component._set_parent(self)
@@ -109,16 +98,17 @@ module Textui
 
     def move_child(component, x, y)
       raise 'Parent mismatch' if component.parent != self
-      @component_positions[component] = [x, y]
+      @component_positions&.[](component, [x, y])
     end
 
     def remove_child(component)
-      @component_positions.delete(component)
+      @component_positions&.delete(component)
       component._set_parent(nil)
     end
+
   end
 
-  class RootContainer < Container
+  class RootContainer < Component
     def focused_component=(component)
       @focused_component = component
       @blured = false
@@ -145,7 +135,7 @@ module Textui
         return
       end
       focusable_components = []
-      traverse do |component|
+      traverse_child do |component|
         focusable_components << component if component.focusable
       end
       i = focusable_components.index(@focused_component)

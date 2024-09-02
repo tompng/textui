@@ -4,7 +4,7 @@ require_relative 'unicode'
 require_relative 'component'
 
 module Textui
-  class Box < Container
+  class Box < Component
     attr_reader :title, :width, :height, :title_align, :color_seq
     def initialize(width, height, title: '', title_align: :center, color_seq: '')
       super()

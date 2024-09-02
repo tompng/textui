@@ -1,3 +1,6 @@
+Textui::KeyEvent = Data.define(:type, :raw)
+Textui::MouseEvent = Data.define(:type, :x, :y, :absolute_x, :absolute_y, :data)
+
 class Textui::InputRecognizer
   def initialize
     @buf = ''.b
@@ -7,7 +10,7 @@ class Textui::InputRecognizer
 
   ARROWS = { left: 'D', right: 'C', up: 'A', down: 'B', end: 'F', home: 'H' }
   KEYS = {}
-  Key = Data.define(:type, :raw)
+  KeyEvent = Data.define(:type, :raw)
 
   ARROWS.each do |type, char|
     KEYS["\e[#{char}"] = type
@@ -43,7 +46,7 @@ class Textui::InputRecognizer
       if @bracketed_paste.end_with?("\e[201~")
         raw = @bracketed_paste[0...-6].force_encoding(@encoding)
         @bracketed_paste = nil
-        return Key.new(type: :bracketed_paste, raw:)
+        return Textui::KeyEvent.new(type: :bracketed_paste, raw:)
       end
       return
     end
@@ -57,10 +60,10 @@ class Textui::InputRecognizer
       return
     end
 
-    return Key.new(type: key, raw:) if key
+    return Textui::KeyEvent.new(type: key, raw:) if key
 
     raw.force_encoding(@encoding)
-    Key.new(type: raw.grapheme_clusters.size == 1 ? :char : :unknown, raw:) if raw.valid_encoding?
+    Textui::KeyEvent.new(type: raw.grapheme_clusters.size == 1 ? :char : :unknown, raw:) if raw.valid_encoding?
   end
 
   def test(byte)
@@ -86,7 +89,7 @@ class Textui::InputRecognizer
   end
 end
 
-class Textui::Event
+class Textui::EventRunner
   def initialize(input, intr: true, tick:)
     @resized = @resumed = false
     @intr = intr

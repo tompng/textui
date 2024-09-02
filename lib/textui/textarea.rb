@@ -36,9 +36,9 @@ module Textui
       @lines.join("\n")
     end
 
-    def mouse_down(x, y, _data)
-      x -= @border
-      y -= @border
+    def mouse_down(e)
+      x = e.x - @border
+      y = e.y - @border
       x = 0 if x < 0
       if y < 0 || y >= @height
         focus
