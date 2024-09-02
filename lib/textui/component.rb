@@ -2,6 +2,15 @@ module Textui
   class Component
     attr_reader :parent
     attr_accessor :clickable
+    attr_writer :left, :top
+
+    def left
+      @left ||= 0
+    end
+
+    def top
+      @top ||= 0
+    end
 
     def focusable = false
 
@@ -17,16 +26,11 @@ module Textui
 
     def absolute_position
       px, py = @parent&.absolute_position
-      x, y = @parent&.position_of(self)
-      [(px || 0) + (x || 0), (py || 0) + (y || 0)]
+      [(px || 0) + left, (py || 0) + top]
     end
 
     def remove
       @parent&.remove_child(self)
-    end
-
-    def move(x, y)
-      @parent&.move_child(self, x, y)
     end
 
     def blur(direction = nil)
@@ -58,9 +62,9 @@ module Textui
     end
 
     def render
-      @component_positions&.each do |component, (cx, cy)|
+      children.each do |component|
         component._render.each do |x, y, text, z, clickable, data|
-          @rendered << [x + cx, y + cy, text, z, clickable, data]
+          @rendered << [component.left + x, component.top + y, text, z, clickable, data]
         end
       end
     end
@@ -70,13 +74,8 @@ module Textui
     end
 
     def children
-      @component_positions&.keys || []
+      @children || []
     end
-
-    def each_child_with_position
-      @component_positions&.each { yield _1, _2 }
-    end
-
 
     def traverse_child
       children.each do |component|
@@ -85,27 +84,16 @@ module Textui
       end
     end
 
-    def position_of(component)
-      @component_positions&.[](component)
-    end
-
-    def add_child(component, x, y)
-      @component_positions ||= {}
+    def add_child(component)
+      (@children ||= []) << component
       component.parent.remove(component) if component.parent && component.parent != self
-      @component_positions[component] = [x, y]
       component._set_parent(self)
     end
 
-    def move_child(component, x, y)
-      raise 'Parent mismatch' if component.parent != self
-      @component_positions&.[](component, [x, y])
-    end
-
     def remove_child(component)
-      @component_positions&.delete(component)
+      @children -= [component]
       component._set_parent(nil)
     end
-
   end
 
   class RootContainer < Component

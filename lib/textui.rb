@@ -11,12 +11,8 @@ require_relative 'textui/box'
 module Textui
   @root = Textui::RootContainer.new
 
-  def self.add_child(component, x, y)
-    @root.add_child(component, x, y)
-  end
-
-  def self.move_child(component, x, y)
-    @root.move_child(component, x, y)
+  def self.add_child(component)
+    @root.add_child(component)
   end
 
   def self.remove_child(component)

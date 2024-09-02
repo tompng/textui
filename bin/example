@@ -35,24 +35,32 @@ end
 
 begin
   message = Textui::Text.new("\e[1mTAB\e[m: switch focus\n\e[1mCTRL-C\e[m: exit")
-  Textui.add_child(message, 0, 0)
+  Textui.add_child(message)
   4.times do |i|
     textarea = Textui::Textarea.new(11, 5, text: "text#{i}", title: i.to_s, title_align: :left)
     textarea.clickable = true
-    Textui.add_child(textarea, i * 2, 3 + i % 2 * 2 + i / 2)
+    textarea.left = i * 2
+    textarea.top = 3 + i % 2 * 2 + i / 2
+    Textui.add_child(textarea)
   end
   textarea1 = Textui::Textarea.new(20, 8, text: "Hello,\nWorld! 1", title: 'Textarea1', title_align: :left)
   textarea2 = Textui::Textarea.new(20, 10, text: "Hello,\nWorld! 2", title: 'Textarea2', title_align: :left)
-  Textui.add_child(textarea1, 0, 8)
-  Textui.add_child(textarea2, 16, 3)
-  Textui.add_child(Foo.new, 0, 2)
+  textarea1.left = 0
+  textarea1.top = 8
+  textarea2.left = 16
+  textarea2.top = 3
+  Textui.add_child(textarea1)
+  Textui.add_child(textarea2)
+  foo = Foo.new
+  foo.top = 2
+  Textui.add_child(foo)
   textarea1.clickable = true
   textarea2.clickable = true
   textarea1.focus
 
   Textui.event_loop fullscreen: false do |type, data|
     if type == :key && data.type == :ctrl_x
-      textarea1.parent ? textarea1.remove : Textui.add_child(textarea1, 0, 5)
+      textarea1.parent ? textarea1.remove : Textui.add_child(textarea1)
     end
     if type == :resize
       h, w = STDIN.winsize
