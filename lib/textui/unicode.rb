@@ -185,13 +185,15 @@ module Textui::Unicode
     end
   end
 
+  COLOR_SCAN_REGEXP = /(\e\[0?m)|(\e\[[\d;]*m)|(\X)/
+
   def self.take_range(text, col, width, cover_begin:, cover_end:, padding:)
     total_width = 0
     output = +''
     range_begin = 0 if col == 0
     end_col = col + width
     return [0, output] if width == 0
-    text.scan(/(\e\[0?m)|(\e\[[\d;]*m)|(\X)/).each do |(reset, csi, gc)|
+    text.scan(COLOR_SCAN_REGEXP).each do |(reset, csi, gc)|
       if range_begin
         if reset || csi
           output << (reset || csi)
@@ -275,23 +277,45 @@ module Textui::Unicode
     end
   end
 
-  def self.wrap_text(text, width, offset: 0)
+  def self.wrap_text(text, width)
     lines = [+'']
-    x = offset
+    x = 0
     text.grapheme_clusters.each do |gc|
       w = char_width(gc)
-      if gc == "\n"
+      if gc == "\n" || (x > 0 && x + w > width)
         lines << +''
         x = 0
-      elsif x == 0 || x + w <= width
+        next if gc == "\n"
+      end
+      lines.last << gc
+      x += w
+    end
+    lines
+  end
+
+  def self.wrap_colored_text(text, width)
+    lines = [+'']
+    seq = +''
+    x = 0
+    text.scan(COLOR_SCAN_REGEXP).each do |(reset, csi, gc)|
+      if reset
+        lines.last << reset
+        seq.clear
+      elsif csi
+        lines.last << csi
+        seq << csi
+      else
+        w = char_width(gc)
+        if gc == "\n" || (x > 0 && x + w > width)
+          lines << seq.dup
+          x = 0
+          next if gc == "\n"
+        end
         lines.last << gc
         x += w
-      else
-        lines << gc
-        x = w
       end
     end
-    [lines, x]
+    lines
   end
 
   def self.text_width(text)

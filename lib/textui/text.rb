@@ -25,7 +25,7 @@ module Textui
     end
 
     def reconstruct
-      @lines = @width ? Unicode.wrap_text(@content, @width).first : @content.split("\n", -1)
+      @lines = @width ? Unicode.wrap_colored_text(@content, @width) : @content.split("\n", -1)
     end
 
     def render

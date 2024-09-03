@@ -67,7 +67,7 @@ module Textui
       row = -@scroll_top
       new_index, new_byte_pointer = nil
       @lines.each_with_index do |line, i|
-        lines, = Unicode.wrap_text(line, @width)
+        lines = Unicode.wrap_text(line, @width)
         if row + lines.size <= y
           row += lines.size
         else
@@ -126,19 +126,19 @@ module Textui
         if @byte_pointer == 0 && @line_index > 0 && @line_index < @lines.size
           @line_index -= 1
           @byte_pointer = @lines[@line_index].bytesize
-          join_line(@line_index)
+          join_line
         else
           cursor_action(:delete, :left, /\X/)
         end
       when :ctrl_d
         if @lines[@line_index].bytesize == @byte_pointer
-          join_line(@line_index)
+          join_line
         else
           cursor_action(:delete, :right, /\X/)
         end
       when :meta_d
         if @lines[@line_index].bytesize == @byte_pointer
-          join_line(@line_index)
+          join_line
         else
           cursor_action(:delete, :right, /\P{word}*\p{word}*/)
         end
@@ -149,7 +149,7 @@ module Textui
       when :meta_f, :meta_right
         cursor_action(:move, :right, /\P{word}*\p{word}*/)
       when :ctrl_j, :ctrl_m
-        insert("\n" + key.raw.inspect)
+        insert("\n")
       when :meta_ctrl_j, :meta_ctrl_m
         trigger_event(:submit, self)
       when :ctrl_k
@@ -180,8 +180,9 @@ module Textui
 
     def move_cursor_vertical(dir)
       current_line = @lines[@line_index]
-      lines, = Unicode.wrap_text(current_line, @width)
-      clines, col = Unicode.wrap_text(current_line.byteslice(0, @byte_pointer), @width)
+      lines = Unicode.wrap_text(current_line, @width)
+      clines = Unicode.wrap_text(current_line.byteslice(0, @byte_pointer), @width)
+      col = Unicode.text_width(clines.last)
       row = clines.size - 1
       if col == @width
         row += 1
@@ -193,7 +194,7 @@ module Textui
           @byte_pointer = lines[0, row - 1].sum(&:bytesize) + Unicode.substr(lines[row - 1], 0, col).bytesize
         elsif @line_index > 0
           @line_index -= 1
-          (*lines, line), = Unicode.wrap_text(@lines[@line_index], @width)
+          *lines, line = Unicode.wrap_text(@lines[@line_index], @width)
           @byte_pointer = lines.sum(&:bytesize) + Unicode.substr(line, 0, col).bytesize
         else
           @byte_pointer = 0
@@ -275,11 +276,11 @@ module Textui
       wrapped_lines = []
       cursor_row = cursor_x = 0
       @lines.each_with_index do |line, i|
-        lines, x = Unicode.wrap_text(line, @width)
-        lines << '' if x == @width
+        lines = Unicode.wrap_text(line, @width)
+        lines << '' if Unicode.text_width(lines.last) == @width
         if i == @line_index
-          clines, cx = Unicode.wrap_text(line.byteslice(0, @byte_pointer), @width)
-          cursor_x = cx
+          clines = Unicode.wrap_text(line.byteslice(0, @byte_pointer), @width)
+          cursor_x = Unicode.text_width(clines.last)
           cursor_row = wrapped_lines.size + clines.size - 1
         end
         wrapped_lines.concat(lines)
