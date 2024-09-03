@@ -140,10 +140,10 @@ module Textui
         if @lines[@line_index].bytesize == @byte_pointer
           join_line
         else
-          cursor_action(:delete, :right, /\P{word}*\p{word}*/)
+          cursor_action(:yank_delete, :right, /\P{word}*\p{word}*/)
         end
       when :meta_backspace
-        cursor_action(:delete, :left, /\P{word}*\p{word}*/)
+        cursor_action(:yank_delete, :left, /\P{word}*\p{word}*/)
       when :meta_b, :meta_left
         cursor_action(:move, :left, /\P{word}*\p{word}*/)
       when :meta_f, :meta_right
@@ -156,8 +156,10 @@ module Textui
         if @byte_pointer == @lines[@line_index].bytesize && @line_index < @lines.size - 1
           join_line
         else
-          cursor_action(:delete, :right, /.+/)
+          cursor_action(:yank_delete, :right, /.+/)
         end
+      when :ctrl_y
+        insert(@yanked) if @yanked
       when :bracketed_paste
         insert(key.raw.split(/\r\n?|\n/, -1).map { _1.delete("\x00-\x1F") }.join("\n"))
       end
@@ -229,12 +231,14 @@ module Textui
         in :right
           @byte_pointer += len
         end
-      in :delete
+      in :delete | :yank_delete
         case direction
         in :left
+          @yanked = @lines[@line_index].byteslice(@byte_pointer - len, len) if action == :yank_delete
           @lines[@line_index].bytesplice(@byte_pointer - len, len, '')
           @byte_pointer -= len
         in :right
+          @yanked = @lines[@line_index].byteslice(@byte_pointer, len) if action == :yank_delete
           @lines[@line_index].bytesplice(@byte_pointer, len, '')
         end
         trigger_event(:change, self)
